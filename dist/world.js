@@ -1,4 +1,5 @@
 import * as T from './vendor/three.module.js';
+import {PALETTE,MONO_FONT} from './palette.js';
 import {simMaterial} from './rendering.js';
 import {pads,gates,groundHeight,segments,WORLD_SIZE,nearRoute} from './terrain.js';
 import littleBird from './assets/little-bird.js';
@@ -57,7 +58,7 @@ export function makeWorld(parent){
   const padMeshes=[];
   for(const p of pads){
     const y=groundHeight(p.x,p.z),canvas=document.createElement('canvas');canvas.width=canvas.height=256;
-    const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,256,256);ctx.strokeStyle='#1c33ad';ctx.lineWidth=7;ctx.lineCap='round';
+    const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,256,256);ctx.strokeStyle=PALETTE.ink;ctx.lineWidth=7;ctx.lineCap='round';
     ctx.beginPath();ctx.arc(128,128,112,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(98,78);ctx.lineTo(96,176);ctx.moveTo(158,77);ctx.lineTo(161,177);ctx.moveTo(96,127);ctx.lineTo(161,129);ctx.stroke();
     const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;const face=new T.Mesh(new T.PlaneGeometry(32,32),material('#fff',{map:texture}));face.rotation.x=-Math.PI/2;face.position.set(p.x,y+.12,p.z);root.add(face);
     const ring=new T.Mesh(new T.TorusGeometry(17,.12,4,64),material('#fff',{ink:1,fill:true}));ring.rotation.x=-Math.PI/2;ring.position.set(p.x,y+.15,p.z);root.add(ring);padMeshes.push(ring);
@@ -91,7 +92,7 @@ export function makeHelicopter(){
   // AnirudhRao's MH-6, simplified for the browser. CC BY 4.0, credits in assets/.
   // Fixed unlit colors, independent of the world's look and sun direction.
   const flat=color=>new T.MeshBasicMaterial({color,fog:false,toneMapped:false});
-  const materials={body:flat('#f5f0e3'),ink:flat('#1c33ad'),glass:flat('#e7ecec'),accent:flat('#e5323d')};
+  const materials={body:flat(PALETTE.airframe),ink:flat(PALETTE.ink),glass:flat(PALETTE.glass),accent:flat(PALETTE.accent)};
   // The CAD airframe includes thin panel surfaces around the open doors.
   // Both sides get the exact same unlit fill.
   for(const material of Object.values(materials))material.side=T.DoubleSide;
@@ -116,9 +117,9 @@ export function makeHelicopter(){
 export function makeCockpit(){
   const group=new T.Group();group.name='Little Bird cockpit';
   const flat=color=>new T.MeshBasicMaterial({color,fog:false,toneMapped:false});
-  const frame=flat('#1c33ad'),shell=flat('#ece6d6'),hardware=flat('#1c33ad');
-  const pen=new T.LineBasicMaterial({color:'#1c33ad',fog:false,toneMapped:false});
-  const reticle=new T.LineBasicMaterial({color:'#1c33ad',fog:false,toneMapped:false,transparent:true,opacity:.8});
+  const frame=flat(PALETTE.ink),shell=flat(PALETTE.panel),hardware=flat(PALETTE.ink);
+  const pen=new T.LineBasicMaterial({color:PALETTE.ink,fog:false,toneMapped:false});
+  const reticle=new T.LineBasicMaterial({color:PALETTE.ink,fog:false,toneMapped:false,transparent:true,opacity:.8});
   // The reference is 1498 x 1252. Trace in its image plane, preserving circular
   // instruments at our wider FOV instead of stretching the reference to 16:9.
   const span=2*Math.tan(105*Math.PI/360)/(16/9);
@@ -179,7 +180,7 @@ export function makeCockpit(){
   let last=-Infinity,style='doodle',latest;
   const update=t=>{
     latest=t;if(t.t>=last&&t.t-last<.1)return;last=t.t;
-    const natural=style==='natural',paper=natural?'#343b36':'#eee8d8',ink=natural?'#d9dcc9':'#1c33ad',face=natural?'#111d18':'#f7f3e7',mark=natural?'#d7b96c':'#e5323d';
+    const natural=style==='natural',paper=natural?'#343b36':PALETTE.panel,ink=natural?'#d9dcc9':PALETTE.ink,face=natural?'#111d18':PALETTE.paper,mark=natural?'#d7b96c':PALETTE.accent;
     const ctx=analog.ctx;
     ctx.fillStyle=paper;ctx.fillRect(0,0,768,768);ctx.strokeStyle=ink;ctx.fillStyle=ink;ctx.lineWidth=3;
     for(let i=0;i<15;i++){ctx.strokeRect(22+i*49,22,31,29);if(i===3||i===4){ctx.fillStyle=face;ctx.fillRect(26+i*49,26,23,21);ctx.fillStyle=ink;}}
@@ -190,25 +191,25 @@ export function makeCockpit(){
       ctx.beginPath();ctx.arc(x,y,r-7,0,Math.PI*2);ctx.stroke();
       for(let i=0;i<36;i++){const a=i*Math.PI/18;ctx.beginPath();ctx.moveTo(x+Math.sin(a)*(r-13),y-Math.cos(a)*(r-13));ctx.lineTo(x+Math.sin(a)*(r-(i%3===0?28:20)),y-Math.cos(a)*(r-(i%3===0?28:20)));ctx.stroke();}
       const a=-Math.PI*.75+Math.PI*1.5*Math.max(0,Math.min(1,fraction));ctx.strokeStyle=mark;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x-Math.sin(a)*13,y+Math.cos(a)*13);ctx.lineTo(x+Math.sin(a)*(r-32),y-Math.cos(a)*(r-32));ctx.stroke();ctx.strokeStyle=ink;ctx.lineWidth=3;
-      ctx.fillStyle=ink;ctx.textAlign='center';ctx.font='21px monospace';ctx.fillText(value,x,y+43);ctx.font='16px monospace';ctx.fillText(label,x,y+66);
+      ctx.fillStyle=ink;ctx.textAlign='center';ctx.font=`21px ${MONO_FONT}`;ctx.fillText(value,x,y+43);ctx.font=`16px ${MONO_FONT}`;ctx.fillText(label,x,y+66);
     };
     dial(130,314,101,'km/h',t.speed/350,Math.round(t.speed));dial(628,314,98,'m',t.y/1500,Math.round(t.y));
     dial(130,603,96,'%',t.rotor??t.collective,Math.round((t.rotor??t.collective)*100));dial(628,603,98,'m/s',(t.vy+25)/50,t.vy.toFixed(1));
     // Circular attitude indicator occupies the center of the analog cluster.
     ctx.fillStyle=face;ctx.beginPath();ctx.arc(379,314,98,0,Math.PI*2);ctx.fill();ctx.strokeStyle=ink;ctx.stroke();
     ctx.save();ctx.beginPath();ctx.arc(379,314,88,0,Math.PI*2);ctx.clip();ctx.translate(379,314);ctx.rotate(-t.roll*Math.PI/180);
-    ctx.fillStyle=natural?'#546f76':'#dce5ec';ctx.fillRect(-130,-180+t.pitch*2.5,260,180);
-    ctx.fillStyle=natural?'#70644a':'#e6dcc2';ctx.fillRect(-130,t.pitch*2.5,260,180);
+    ctx.fillStyle=natural?'#546f76':PALETTE.sky;ctx.fillRect(-130,-180+t.pitch*2.5,260,180);
+    ctx.fillStyle=natural?'#70644a':PALETTE.ground;ctx.fillRect(-130,t.pitch*2.5,260,180);
     ctx.strokeStyle=ink;ctx.lineWidth=2;for(let a=-30;a<=30;a+=10){const y=(t.pitch-a)*2.5;ctx.beginPath();ctx.moveTo(-34,y);ctx.lineTo(-9,y);ctx.moveTo(9,y);ctx.lineTo(34,y);ctx.stroke();}ctx.restore();
     ctx.strokeStyle=mark;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(334,314);ctx.lineTo(367,314);ctx.lineTo(379,321);ctx.lineTo(391,314);ctx.lineTo(424,314);ctx.stroke();
     ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.strokeRect(271,514,216,178);ctx.fillStyle=face;ctx.fillRect(280,523,198,160);
-    ctx.fillStyle=ink;ctx.textAlign='center';ctx.font='35px monospace';ctx.fillText(Math.round(t.heading).toString().padStart(3,'0')+'°',379,610);
+    ctx.fillStyle=ink;ctx.textAlign='center';ctx.font=`35px ${MONO_FONT}`;ctx.fillText(Math.round(t.heading).toString().padStart(3,'0')+'°',379,610);
     analog.texture.needsUpdate=true;
     const d=display.ctx;d.fillStyle=paper;d.fillRect(0,0,640,768);d.strokeStyle=ink;d.lineWidth=3;
     d.fillStyle=face;d.fillRect(67,94,507,640);d.strokeRect(59,86,523,656);
     for(let i=0;i<7;i++){d.strokeRect(16,124+i*82,23,34);d.strokeRect(601,124+i*82,23,34);}
     for(const x of [125,506]){d.beginPath();d.arc(x,39,12,0,Math.PI*2);d.stroke();}
-    d.fillStyle=ink;d.font='24px monospace';d.textAlign='left';d.fillText(Math.round(t.y)+' m',93,143);d.fillText(Math.round(t.speed)+' km/h',93,681);d.fillText(t.vy.toFixed(1)+' m/s',93,718);
+    d.fillStyle=ink;d.font=`24px ${MONO_FONT}`;d.textAlign='left';d.fillText(Math.round(t.y)+' m',93,143);d.fillText(Math.round(t.speed)+' km/h',93,681);d.fillText(t.vy.toFixed(1)+' m/s',93,718);
     // Live attitude and tapes, no ornamental readouts or copied game labels.
     d.save();d.beginPath();d.rect(81,168,480,468);d.clip();d.translate(326,408);d.rotate(-t.roll*Math.PI/180);
     d.strokeStyle=natural?'#719b83':ink;d.lineWidth=2;
@@ -219,7 +220,7 @@ export function makeCockpit(){
   };
   const setStyle=value=>{
     style=value==='natural'?'natural':'doodle';const natural=style==='natural';
-    frame.color.set(natural?'#202721':'#1c33ad');hardware.color.set(natural?'#151d1a':'#1c33ad');shell.color.set(natural?'#343b36':'#ece6d6');pen.color.set(natural?'#111915':'#1c33ad');reticle.color.set(natural?'#e8e7c7':'#1c33ad');
+    frame.color.set(natural?'#202721':PALETTE.ink);hardware.color.set(natural?'#151d1a':PALETTE.ink);shell.color.set(natural?'#343b36':PALETTE.panel);pen.color.set(natural?'#111915':PALETTE.ink);reticle.color.set(natural?'#e8e7c7':PALETTE.ink);
     last=-Infinity;if(latest)update(latest);
   };
   update({t:0,speed:0,y:0,vy:0,heading:0,roll:0,pitch:0,collective:0,rotor:0});group.traverse(object=>object.layers.set(1));

@@ -1,4 +1,5 @@
 import * as T from './vendor/three.module.js';
+import {PALETTE,MONO_FONT} from './palette.js';
 import {Helicopter,DEFAULTS,V05_DEFAULTS,V04_DEFAULTS,PREVIOUS_DEFAULTS,ORIGINAL_DEFAULTS,migrateHandling,STEP,clamp} from './physics.js';
 import {Controls,BINDINGS,keyLabel} from './controls.js';
 import {makeWorld,makeHelicopter,makeCockpit,groundHeight,pads,gates} from './world.js';
@@ -191,29 +192,30 @@ function updateHUD(){
   cockpitModel.update(t);updateObjective();drawMap(t);drawHUD(t);
 }
 function drawMap(t){
-  const w=224,h=224,s=.08,cx=112,cy=130;map.clearRect(0,0,w,h);map.strokeStyle='#1c33ad16';map.lineWidth=1;
+  const w=224,h=224,s=.08,cx=112,cy=130;map.clearRect(0,0,w,h);map.strokeStyle=PALETTE.ink+'16';map.lineWidth=1;
   for(let x=12;x<w;x+=32){map.beginPath();map.moveTo(x,0);map.lineTo(x,h);map.stroke();}for(let y=2;y<h;y+=32){map.beginPath();map.moveTo(0,y);map.lineTo(w,y);map.stroke();}
   const centerX=t.x,centerZ=t.z-250;
   const pt=(x,z)=>[cx+(x-centerX)*s,cy+(z-centerZ)*s];
-  map.fillStyle='#1c33ad55';
+  map.fillStyle=PALETTE.ink+'55';
   for(const b of world.buildings){const [x,y]=pt(b.x,b.z);map.fillRect(x-b.w*s/2,y-b.d*s/2,Math.max(2,b.w*s),Math.max(2,b.d*s));}
-  if(mode==='slalom'){map.strokeStyle='#e5323d99';map.lineWidth=1;map.setLineDash([3,4]);map.beginPath();gates.forEach((p,i)=>{const point=pt(p.x,p.z);if(i===0)map.moveTo(...point);else map.lineTo(...point);});map.stroke();map.setLineDash([]);gates.forEach((p,i)=>{const [x,y]=pt(p.x,p.z);map.fillStyle=i<gateIndex?'#27887c':'#e5323d';map.fillRect(x-2,y-2,4,4);});}
-  map.font='12px monospace';map.textAlign='center';for(const p of pads){const [x,y]=pt(p.x,p.z);map.strokeStyle='#e5323d';map.lineWidth=1;map.beginPath();map.arc(x,y,5,0,Math.PI*2);map.stroke();}
-  const [x,y]=pt(t.x,t.z);const drift=Math.hypot(t.vx,t.vz);if(drift>1){const len=Math.min(35,drift*.8);map.strokeStyle='#e5323d';map.lineWidth=1.5;map.beginPath();map.moveTo(x,y);map.lineTo(x+t.vx/drift*len,y+t.vz/drift*len);map.stroke();map.fillStyle='#e5323d';map.beginPath();map.arc(x+t.vx/drift*len,y+t.vz/drift*len,2,0,Math.PI*2);map.fill();}map.save();map.translate(x,y);map.rotate(t.heading*Math.PI/180);map.fillStyle='#1c33ad';map.beginPath();map.moveTo(0,-7);map.lineTo(5,5);map.lineTo(0,2);map.lineTo(-5,5);map.closePath();map.fill();map.restore();map.fillStyle='#1c33ad';map.textAlign='left';map.fillText('N ↑',8,12);
+  if(mode==='slalom'){map.strokeStyle=PALETTE.accent+'99';map.lineWidth=1;map.setLineDash([3,4]);map.beginPath();gates.forEach((p,i)=>{const point=pt(p.x,p.z);if(i===0)map.moveTo(...point);else map.lineTo(...point);});map.stroke();map.setLineDash([]);gates.forEach((p,i)=>{const [x,y]=pt(p.x,p.z);map.fillStyle=i<gateIndex?PALETTE.success:PALETTE.accent;map.fillRect(x-2,y-2,4,4);});}
+  map.font=`12px ${MONO_FONT}`;map.textAlign='center';for(const p of pads){const [x,y]=pt(p.x,p.z);map.strokeStyle=PALETTE.accent;map.lineWidth=1;map.beginPath();map.arc(x,y,5,0,Math.PI*2);map.stroke();}
+  const [x,y]=pt(t.x,t.z);const drift=Math.hypot(t.vx,t.vz);if(drift>1){const len=Math.min(35,drift*.8);map.strokeStyle=PALETTE.accent;map.lineWidth=1.5;map.beginPath();map.moveTo(x,y);map.lineTo(x+t.vx/drift*len,y+t.vz/drift*len);map.stroke();map.fillStyle=PALETTE.accent;map.beginPath();map.arc(x+t.vx/drift*len,y+t.vz/drift*len,2,0,Math.PI*2);map.fill();}map.save();map.translate(x,y);map.rotate(t.heading*Math.PI/180);map.fillStyle=PALETTE.ink;map.beginPath();map.moveTo(0,-7);map.lineTo(5,5);map.lineTo(0,2);map.lineTo(-5,5);map.closePath();map.fill();map.restore();map.fillStyle=PALETTE.ink;map.textAlign='left';map.fillText('N ↑',8,12);
 }
 function drawHUD(t){
   const w=innerWidth,h=innerHeight;hud.clearRect(0,0,w,h);
-  const cx=w/2,cy=h*.5,instrumentY=h-62;hud.strokeStyle='#1c33ad99';hud.fillStyle='#1c33ad';hud.lineWidth=1;hud.font='13px monospace';hud.textAlign='center';
+  const cx=w/2,cy=h*.5,instrumentY=h-120;hud.strokeStyle=PALETTE.ink+'99';hud.fillStyle=PALETTE.ink;hud.lineWidth=1;hud.font=`13px ${MONO_FONT}`;hud.textAlign='center';
   // Body pitch and bank are shown separately from flight-path direction.
+  // No rectangular clip: banked ladder marks and labels keep their full extent.
   if(!cockpit){
-  hud.save();hud.translate(cx,instrumentY);hud.beginPath();hud.rect(-76,-38,152,76);hud.clip();hud.rotate(-t.roll*Math.PI/180);
+  hud.save();hud.translate(cx,instrumentY);hud.rotate(-t.roll*Math.PI/180);
   for(let p=-90;p<=90;p+=10){const y=(t.pitch-p)*1.15;if(Math.abs(y)>42)continue;const width=p===0?65:28;hud.beginPath();hud.moveTo(-width,y);hud.lineTo(-10,y);hud.moveTo(10,y);hud.lineTo(width,y);hud.stroke();if(p){hud.fillText(`${p}`,width+15,y+3);hud.fillText(`${p}`,-width-15,y+3);}}
-  hud.restore();hud.strokeStyle='#e5323d';hud.lineWidth=1.5;hud.beginPath();hud.moveTo(cx-35,instrumentY);hud.lineTo(cx-12,instrumentY);hud.lineTo(cx-12,instrumentY+5);hud.moveTo(cx+35,instrumentY);hud.lineTo(cx+12,instrumentY);hud.lineTo(cx+12,instrumentY+5);hud.stroke();hud.beginPath();hud.arc(cx,cy,4,0,Math.PI*2);hud.stroke();
+  hud.restore();hud.strokeStyle=PALETTE.accent;hud.lineWidth=1.5;hud.beginPath();hud.moveTo(cx-35,instrumentY);hud.lineTo(cx-12,instrumentY);hud.lineTo(cx-12,instrumentY+5);hud.moveTo(cx+35,instrumentY);hud.lineTo(cx+12,instrumentY);hud.lineTo(cx+12,instrumentY+5);hud.stroke();hud.beginPath();hud.arc(cx,cy,4,0,Math.PI*2);hud.stroke();
   }
-  hud.fillStyle='#1c33ad';hud.fillText(`${Math.round(t.heading).toString().padStart(3,'0')}°`,cx,28);
-  hud.strokeStyle='#1c33ad99';hud.lineWidth=1;for(let d=-30;d<=30;d+=10){const x=cx+d*4;hud.beginPath();hud.moveTo(x,36);hud.lineTo(x,42);hud.stroke();hud.fillText(Math.round((t.heading+d+360)%360).toString().padStart(3,'0'),x,55);}
+  hud.fillStyle=PALETTE.ink;hud.fillText(`${Math.round(t.heading).toString().padStart(3,'0')}°`,cx,28);
+  hud.strokeStyle=PALETTE.ink+'99';hud.lineWidth=1;for(let d=-30;d<=30;d+=10){const x=cx+d*4;hud.beginPath();hud.moveTo(x,36);hud.lineTo(x,42);hud.stroke();hud.fillText(Math.round((t.heading+d+360)%360).toString().padStart(3,'0'),x,55);}
   // Flight-path marker exposes sideslip and momentum in cockpit view.
-  if(cockpit && heli.velocity.length()>2){const v=heli.velocity.clone().applyQuaternion(camera.quaternion.clone().invert());if(v.z<-.5){const scale=h/(2*Math.tan(camera.fov*Math.PI/360));const x=cx+v.x/-v.z*scale,y=h/2-v.y/-v.z*scale;if(Math.abs(x-cx)<w*.4&&Math.abs(y-h/2)<h*.35){hud.strokeStyle='#27887c';hud.beginPath();hud.arc(x,y,7,0,Math.PI*2);hud.moveTo(x-17,y);hud.lineTo(x-7,y);hud.moveTo(x+7,y);hud.lineTo(x+17,y);hud.moveTo(x,y-7);hud.lineTo(x,y-14);hud.stroke();}}}
+  if(cockpit && heli.velocity.length()>2){const v=heli.velocity.clone().applyQuaternion(camera.quaternion.clone().invert());if(v.z<-.5){const scale=h/(2*Math.tan(camera.fov*Math.PI/360));const x=cx+v.x/-v.z*scale,y=h/2-v.y/-v.z*scale;if(Math.abs(x-cx)<w*.4&&Math.abs(y-h/2)<h*.35){hud.strokeStyle=PALETTE.success;hud.beginPath();hud.arc(x,y,7,0,Math.PI*2);hud.moveTo(x-17,y);hud.lineTo(x-7,y);hud.moveTo(x+7,y);hud.lineTo(x+17,y);hud.moveTo(x,y-7);hud.lineTo(x,y-14);hud.stroke();}}}
 }
 const audio={ctx:null,gain:null,osc:null,start(){
   if(!this.ctx){try{this.ctx=new AudioContext();this.gain=this.ctx.createGain();this.gain.gain.value=0;const filter=this.ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=350;this.osc=this.ctx.createOscillator();this.osc.type='sawtooth';this.osc.frequency.value=28;const sub=this.ctx.createOscillator();sub.frequency.value=56;const subGain=this.ctx.createGain();subGain.gain.value=.2;sub.connect(subGain);subGain.connect(filter);this.osc.connect(filter);filter.connect(this.gain);this.gain.connect(this.ctx.destination);this.osc.start();sub.start();}catch{}}

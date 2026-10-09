@@ -2,7 +2,7 @@
 
 [Fly it](https://warbird.jimbo.sh) · [Issues](https://github.com/jdubba1/warbird/issues) · [Contributing](CONTRIBUTING.md)
 
-A free browser helicopter playground inspired by WARDOGS. Fly a Little Bird over a mountainous world with independent collective, cyclic and yaw, cockpit and chase cameras, and Doodle or Natural rendering.
+A free browser helicopter playground inspired by WARDOGS. Fly a Little Bird over a mountainous world with independent collective, cyclic and yaw, cockpit and chase cameras, and Doodle or Natural rendering. Warbird uses graphite lines on cool paper, orange flight cues and monospaced instruments.
 
 The handling is an approximation tuned from footage and playtesting. It is not a physics match or an official WARDOGS project.
 
@@ -45,7 +45,7 @@ This runs syntax checks and the Node behavior tests. Tests cover flight dynamics
 - `dist/physics.js`: 120 Hz flight model, quaternion attitude, rotor response and world-space momentum.
 - `dist/controls.js`: keyboard, mouse capture and rebinding.
 - `dist/world.js`, `dist/terrain.js`: mountains, obstacles, helicopter and cockpit geometry.
-- `dist/camera.js`, `dist/rendering.js`: chase/cockpit cameras, doodle postprocessing and unshaded aircraft overlay.
+- `dist/camera.js`, `dist/rendering.js`, `dist/palette.js`: chase/cockpit cameras, doodle postprocessing and unshaded aircraft overlay.
 - `dist/main.js`: HUD, pause menu, challenges and calibration.
 - `tests/`: Node tests; `reference/`: manually sampled public flight data and diagnostic fits.
 
@@ -55,7 +55,7 @@ The app serves `dist/` directly. Three.js and fonts are vendored, so play does n
 
 ## Credits and license
 
-Doodle look inspired by [Evan Milenko's Doodle Shooter](https://doodleshooter.vercel.app/) ([@EvanMilenko](https://x.com/EvanMilenko)).
+Doodle shader adapted from [Evan Milenko's Doodle Shooter](https://doodleshooter.vercel.app/) ([@EvanMilenko](https://x.com/EvanMilenko)).
 
 The exterior uses [AnirudhRao's MH-6 Little Bird](https://sketchfab.com/3d-models/mh-6-little-bird-d6ec6eeb84b240789f54923bdedafc86), adapted under CC BY 4.0. [Hieb's flight guide](https://www.youtube.com/watch?v=sarU96OHVMI) informed the handling experiments.
 

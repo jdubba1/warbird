@@ -1,8 +1,10 @@
 Warbird credits
 
-Doodle look inspired by Evan Milenko's Doodle Shooter.
+Doodle shader adapted from Evan Milenko's Doodle Shooter.
 https://doodleshooter.vercel.app/
 https://x.com/EvanMilenko
+Modified for Warbird: graphite/cool-paper palette, hatching, ground marks,
+depth/normal packing and separate unshaded aircraft rendering.
 
 Source, issues and contributions: https://github.com/jdubba1/warbird
 Warbird code: MIT. Third-party assets retain their own licenses.

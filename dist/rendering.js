@@ -1,7 +1,12 @@
 import * as T from './vendor/three.module.js';
+import {PALETTE} from './palette.js';
 
-// First-generation blue-pen and paper renderer. World hatching stays in
+// Doodle shader adapted from Evan Milenko's Doodle Shooter.
+// https://doodleshooter.vercel.app/
+// Modified palette, depth/normal packing, hatching, ground marks and aircraft pass.
+// Graphite-and-paper renderer. World hatching stays in
 // screen space; the aircraft and cockpit render separately without shading.
+const screenColor=hex=>new T.Vector3(...[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255));
 const light={value:new T.Vector3(.4,.8,.3).normalize()};
 // Features are fixed in metres, so grass, stone and road marks move with
 // the ground rather than sitting on the screen like the paper hatch.
@@ -135,6 +140,10 @@ export function setSceneStyle(scene,style){scene.traverse(object=>{
 const paperVertex=`varying vec2 screenUV;void main(){screenUV=uv;gl_Position=vec4(position.xy,0.0,1.0);}`;
 const paperFragment=`
   varying vec2 screenUV;
+  uniform vec3 inkColor;
+  uniform vec3 accentColor;
+  uniform vec3 successColor;
+  uniform vec3 paperColor;
   uniform sampler2D sceneData;
   uniform sampler2D sceneDepth;
   uniform vec2 resolution;
@@ -151,9 +160,9 @@ const paperFragment=`
   }
   float inkAt(float encoded){return mod(floor(encoded*8.0+.5),3.0);}
   vec3 pen(float index){
-    if(index>.5&&index<1.5)return vec3(.80,.15,.22);
-    if(index>1.5)return vec3(.20,.47,.33);
-    return vec3(.11,.20,.68);
+    if(index>.5&&index<1.5)return accentColor;
+    if(index>1.5)return successColor;
+    return inkColor;
   }
   float stroke(float coordinate,float spacing,float width){
     float q=abs(fract(coordinate/spacing)-.5)*spacing;
@@ -192,7 +201,7 @@ const paperFragment=`
       hatch=max(hatch,1.0-smoothstep(.025,.095,data.r));
     }
     float grain=(noise(page*.9)-.5)*.028+(noise(floor(page*.22))-.5)*.012;
-    vec3 paper=vec3(.968,.955,.907)+grain;
+    vec3 paper=paperColor+grain;
     float distanceFade=mix(1.0,.25,smoothstep(120.0,3200.0,d));
     vec3 result=mix(paper,pen(inkAt(data.g)),hatch*.79*distanceFade);
     result=mix(result,pen(inkAt(data.g)),(1.0-data.r)*.08*(1.0-smoothstep(150.0,1400.0,d)));
@@ -246,13 +255,13 @@ export class DoodleRenderer {
     // Normalized data fits RGBA8; no floating-point framebuffer extension needed.
     this.target=new T.WebGLRenderTarget(1,1,{type:T.UnsignedByteType,minFilter:T.NearestFilter,magFilter:T.NearestFilter,depthTexture:depth,depthBuffer:true,generateMipmaps:false});
     this.material=new T.ShaderMaterial({vertexShader:paperVertex,fragmentShader:paperFragment,depthTest:true,depthWrite:true,depthFunc:T.AlwaysDepth,
-      uniforms:{sceneData:{value:this.target.texture},sceneDepth:{value:depth},resolution:{value:new T.Vector2(1,1)},pixelRatio:{value:1},nearPlane:{value:.1},farPlane:{value:10000}}});
+      uniforms:{inkColor:{value:screenColor(PALETTE.ink)},accentColor:{value:screenColor(PALETTE.accent)},successColor:{value:screenColor(PALETTE.success)},paperColor:{value:screenColor(PALETTE.paper)},sceneData:{value:this.target.texture},sceneDepth:{value:depth},resolution:{value:new T.Vector2(1,1)},pixelRatio:{value:1},nearPlane:{value:.1},farPlane:{value:10000}}});
     this.scene=new T.Scene();this.scene.add(new T.Mesh(new T.PlaneGeometry(2,2),this.material));this.camera=new T.OrthographicCamera(-1,1,1,-1,0,1);
     const aircraftDepth=new T.DepthTexture(1,1,T.UnsignedIntType);aircraftDepth.format=T.DepthFormat;
     this.aircraftTarget=new T.WebGLRenderTarget(1,1,{type:T.UnsignedByteType,minFilter:T.LinearFilter,magFilter:T.LinearFilter,depthTexture:aircraftDepth,depthBuffer:true,generateMipmaps:false});
     this.aircraftTarget.texture.colorSpace=T.LinearSRGBColorSpace;
     this.aircraftMaterial=new T.ShaderMaterial({vertexShader:paperVertex,fragmentShader:aircraftFragment,depthTest:true,depthWrite:false,toneMapped:false,
-      uniforms:{aircraftColor:{value:this.aircraftTarget.texture},aircraftDepth:{value:aircraftDepth},resolution:{value:new T.Vector2(1,1)},pixelRatio:{value:1},outlineColor:{value:new T.Color('#1c33ad')}}});
+      uniforms:{aircraftColor:{value:this.aircraftTarget.texture},aircraftDepth:{value:aircraftDepth},resolution:{value:new T.Vector2(1,1)},pixelRatio:{value:1},outlineColor:{value:new T.Color(PALETTE.ink)}}});
     this.aircraftScene=new T.Scene();this.aircraftScene.add(new T.Mesh(new T.PlaneGeometry(2,2),this.aircraftMaterial));
     this.direction=new T.Vector3(.4,.8,.3).normalize();this.size=new T.Vector2();
     this.style='doodle';this.appliedStyle=null;this.appliedScene=null;
