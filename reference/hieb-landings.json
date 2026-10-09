@@ -1,0 +1,340 @@
+{
+  "source": "https://www.youtube.com/watch?v=sarU96OHVMI",
+  "format": "1920x1080, 60 fps, public format 399",
+  "timeOrigin": "original video seconds; stream copied section begins at 128 seconds",
+  "limits": [
+    "Key transitions sampled at 10 Hz, approximately +/-0.1 s. Video, input overlay and game HUD may not be synchronized.",
+    "Speed/ASL manually read from full-resolution frames. HUD rounding and compression apply. Speed axis convention unverified.",
+    "Camera/compass heading is not proven to equal instantaneous aircraft heading.",
+    "Raw mouse deltas and initial aircraft attitude, rates and rotor state are unavailable.",
+    "No unique physical fit or full parity is established."
+  ],
+  "landings": [
+    {
+      "name": "first barrel landing, holdout",
+      "inputs": [
+        {
+          "seconds": 290.0,
+          "keys": []
+        },
+        {
+          "seconds": 292.0,
+          "keys": [
+            "Space"
+          ]
+        },
+        {
+          "seconds": 292.3,
+          "keys": [
+            "E",
+            "D",
+            "Space"
+          ]
+        },
+        {
+          "seconds": 294.4,
+          "keys": [
+            "E",
+            "S",
+            "D",
+            "Space"
+          ]
+        },
+        {
+          "seconds": 294.5,
+          "keys": [
+            "E",
+            "D",
+            "Space"
+          ]
+        },
+        {
+          "seconds": 296.4,
+          "keys": [
+            "W",
+            "E",
+            "Space"
+          ]
+        },
+        {
+          "seconds": 296.5,
+          "keys": [
+            "W"
+          ]
+        },
+        {
+          "seconds": 297.0,
+          "keys": []
+        },
+        {
+          "seconds": 297.6,
+          "keys": [
+            "W",
+            "S"
+          ]
+        },
+        {
+          "seconds": 297.7,
+          "keys": [
+            "S"
+          ]
+        },
+        {
+          "seconds": 298.0,
+          "keys": []
+        },
+        {
+          "seconds": 298.1,
+          "keys": [
+            "Space"
+          ]
+        },
+        {
+          "seconds": 298.2,
+          "keys": [
+            "S",
+            "Space"
+          ]
+        },
+        {
+          "seconds": 298.6,
+          "keys": [
+            "W",
+            "S",
+            "D",
+            "Space"
+          ]
+        },
+        {
+          "seconds": 298.7,
+          "keys": [
+            "W",
+            "E",
+            "D"
+          ]
+        },
+        {
+          "seconds": 298.8,
+          "keys": [
+            "D"
+          ]
+        },
+        {
+          "seconds": 298.9,
+          "keys": []
+        }
+      ],
+      "samples": [
+        {
+          "seconds": 292,
+          "speedKmh": 267,
+          "aglM": 24,
+          "aslM": 25
+        },
+        {
+          "seconds": 294,
+          "speedKmh": 173,
+          "aglM": 40,
+          "aslM": 43
+        },
+        {
+          "seconds": 296,
+          "speedKmh": 92,
+          "aglM": 48,
+          "aslM": 50
+        },
+        {
+          "seconds": 298,
+          "speedKmh": 63,
+          "aglM": 10,
+          "aslM": 12
+        },
+        {
+          "seconds": 300,
+          "speedKmh": 27,
+          "aglM": 3,
+          "aslM": 6
+        }
+      ]
+    },
+    {
+      "name": "second barrel landing, conditional fit",
+      "inputs": [
+        {
+          "seconds": 331.0,
+          "keys": [
+            "W"
+          ]
+        },
+        {
+          "seconds": 331.3,
+          "keys": []
+        },
+        {
+          "seconds": 331.4,
+          "keys": [
+            "Space"
+          ]
+        },
+        {
+          "seconds": 331.5,
+          "keys": [
+            "E",
+            "D",
+            "Space"
+          ]
+        },
+        {
+          "seconds": 335.4,
+          "keys": [
+            "E",
+            "Space"
+          ]
+        },
+        {
+          "seconds": 335.6,
+          "keys": []
+        },
+        {
+          "seconds": 335.9,
+          "keys": [
+            "S",
+            "D"
+          ]
+        },
+        {
+          "seconds": 336.1,
+          "keys": [
+            "S"
+          ]
+        },
+        {
+          "seconds": 336.2,
+          "keys": []
+        },
+        {
+          "seconds": 336.5,
+          "keys": [
+            "W"
+          ]
+        },
+        {
+          "seconds": 336.6,
+          "keys": [
+            "W",
+            "D"
+          ]
+        },
+        {
+          "seconds": 336.7,
+          "keys": [
+            "D"
+          ]
+        },
+        {
+          "seconds": 336.8,
+          "keys": [
+            "W"
+          ]
+        },
+        {
+          "seconds": 336.9,
+          "keys": [
+            "S"
+          ]
+        },
+        {
+          "seconds": 337.3,
+          "keys": [
+            "S",
+            "D"
+          ]
+        },
+        {
+          "seconds": 337.4,
+          "keys": [
+            "S"
+          ]
+        },
+        {
+          "seconds": 337.6,
+          "keys": [
+            "S",
+            "D"
+          ]
+        },
+        {
+          "seconds": 337.9,
+          "keys": [
+            "D"
+          ]
+        }
+      ],
+      "samples": [
+        {
+          "seconds": 331,
+          "speedKmh": 227,
+          "aglM": 33,
+          "aslM": 32,
+          "heading": 57
+        },
+        {
+          "seconds": 332,
+          "speedKmh": 224,
+          "aglM": 31,
+          "aslM": 37,
+          "heading": 61
+        },
+        {
+          "seconds": 333,
+          "speedKmh": 168,
+          "aglM": 48,
+          "aslM": 52,
+          "heading": 100
+        },
+        {
+          "seconds": 334,
+          "speedKmh": 84,
+          "aglM": 70,
+          "aslM": 67,
+          "heading": 128
+        },
+        {
+          "seconds": 335,
+          "speedKmh": 77,
+          "aglM": 57,
+          "aslM": 61,
+          "heading": 92
+        },
+        {
+          "seconds": 336,
+          "speedKmh": 87,
+          "aglM": 38,
+          "aslM": 41,
+          "heading": null
+        },
+        {
+          "seconds": 337,
+          "speedKmh": 56,
+          "aglM": 12,
+          "aslM": 25,
+          "heading": null
+        },
+        {
+          "seconds": 338,
+          "speedKmh": 33,
+          "aglM": 5,
+          "aslM": 19,
+          "heading": null
+        },
+        {
+          "seconds": 339,
+          "speedKmh": 16,
+          "aglM": 0,
+          "aslM": 15,
+          "heading": null
+        }
+      ]
+    }
+  ]
+}

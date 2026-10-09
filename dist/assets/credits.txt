@@ -1,0 +1,35 @@
+Warbird credits
+
+Doodle look inspired by Evan Milenko's Doodle Shooter.
+https://doodleshooter.vercel.app/
+https://x.com/EvanMilenko
+
+Source, issues and contributions: https://github.com/jdubba1/warbird
+Warbird code: MIT. Third-party assets retain their own licenses.
+
+MH-6 Little Bird by AnirudhRao
+https://sketchfab.com/AnirudhRao
+https://sketchfab.com/3d-models/mh-6-little-bird-d6ec6eeb84b240789f54923bdedafc86
+
+Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
+https://creativecommons.org/licenses/by/4.0/
+
+Changes for Warbird: geometry simplified, CAD fragments removed, transforms
+baked, oriented and scaled, moving rotors separated, original textures and
+materials removed, flat unlit colors and outline added.
+
+The original model was retrieved from the public Objaverse dataset:
+https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-030/d6ec6eeb84b240789f54923bdedafc86.glb
+
+This credit applies to the exterior helicopter geometry. Three.js is separately
+licensed under MIT; its license is included in ../vendor/.
+
+
+Three.js 0.180.0: MIT, /vendor/THREE-LICENSE.txt
+Caveat: SIL OFL 1.1, /fonts/CAVEAT-LICENSE.txt
+Patrick Hand: SIL OFL 1.1, /fonts/PATRICK-HAND-LICENSE.txt
+
+Handling experiments reference Hieb's WARDOGS flight guide:
+https://www.youtube.com/watch?v=sarU96OHVMI
+
+Independent fan project; not affiliated with WARDOGS.

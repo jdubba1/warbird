@@ -1,0 +1,15 @@
+name: Handling feedback
+description: Help dial in the flight model.
+body:
+  - type: textarea
+    id: difference
+    attributes:
+      label: What feels different?
+      description: Describe the maneuver, inputs, starting speed and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Settings and evidence
+      description: Handling profile, camera, browser, and a clip or controlled measurements if available.

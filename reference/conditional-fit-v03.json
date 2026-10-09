@@ -1,0 +1,130 @@
+{
+  "caveat": "Conditional diagnostic only. Unmeasured initial attitude/rates, mouse deltas, HUD speed convention and camera heading lag prevent a unique physical fit.",
+  "parameters": {
+    "pitchPower": 2.539051978196949,
+    "rollPower": 2.2548814199678597,
+    "yawPower": 2.421495814532973,
+    "angularInertia": 2.2779070458495987,
+    "angularDamping": 1.8894165358319874,
+    "rotorDiscDrag": 0.12,
+    "forwardDrag": 0.1
+  },
+  "previousScore": 18.185067543559583,
+  "baselineScore": 10.02757399133718,
+  "candidateScore": 1.1727807074133194,
+  "previousHoldout": 16.93641285531582,
+  "baselineHoldout": 3.006959633308404,
+  "candidateHoldout": 5.421306201423958,
+  "baseline": [
+    {
+      "time": 332,
+      "speed": 207.88485363309536,
+      "altitude": 32.63277214953348,
+      "heading": 59.03315758557682,
+      "observed": [
+        224,
+        37,
+        61
+      ]
+    },
+    {
+      "time": 333,
+      "speed": 147.67876747531807,
+      "altitude": 41.006407880437166,
+      "heading": 106.11449698730632,
+      "observed": [
+        168,
+        52,
+        100
+      ]
+    },
+    {
+      "time": 334,
+      "speed": 117.78104541185733,
+      "altitude": 41.497585632733745,
+      "heading": 122.04650139339014,
+      "observed": [
+        84,
+        67,
+        128
+      ]
+    },
+    {
+      "time": 335,
+      "speed": 103.32849741577166,
+      "altitude": 26.1329190259749,
+      "heading": 53.46394818148838,
+      "observed": [
+        77,
+        61,
+        92
+      ]
+    }
+  ],
+  "candidate": [
+    {
+      "time": 332,
+      "speed": 220.5182833700161,
+      "altitude": 32.72419851967416,
+      "heading": 58.74537629599422,
+      "observed": [
+        224,
+        37,
+        61
+      ]
+    },
+    {
+      "time": 333,
+      "speed": 157.14429833307977,
+      "altitude": 44.37934363566916,
+      "heading": 91.74306584205368,
+      "observed": [
+        168,
+        52,
+        100
+      ]
+    },
+    {
+      "time": 334,
+      "speed": 99.7028500439993,
+      "altitude": 62.560854545852436,
+      "heading": 151.16809854239023,
+      "observed": [
+        84,
+        67,
+        128
+      ]
+    },
+    {
+      "time": 335,
+      "speed": 62.262932785040846,
+      "altitude": 56.25683447491167,
+      "heading": 107.37566938516125,
+      "observed": [
+        77,
+        61,
+        92
+      ]
+    }
+  ],
+  "holdout": [
+    {
+      "time": 294,
+      "speed": 132.23106430733662,
+      "altitude": 53.318219491515634,
+      "observed": [
+        173,
+        43
+      ]
+    },
+    {
+      "time": 296,
+      "speed": 57.52590248936262,
+      "altitude": 61.46169348907483,
+      "observed": [
+        92,
+        50
+      ]
+    }
+  ]
+}

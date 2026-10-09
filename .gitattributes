@@ -1,0 +1,3 @@
+dist/vendor/** linguist-vendored whitespace=-blank-at-eol,-space-before-tab
+dist/fonts/** linguist-vendored whitespace=-blank-at-eol
+dist/assets/little-bird.js linguist-generated

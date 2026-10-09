@@ -1,0 +1,19 @@
+name: Bug
+description: Report something broken.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include how to reproduce it and what you expected.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and OS
+  - type: textarea
+    id: settings
+    attributes:
+      label: Settings or clip
+      description: Helpful for control, physics and rendering issues. Remove personal data.

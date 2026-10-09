@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Warbird. A helicopter playground with independent pitch, roll, yaw and collective.">
+  <title>Warbird</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M10 18h44M32 12v15M20 29h24v16H20zM16 50h32' stroke='%23d72637' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <canvas id="scene" tabindex="0" aria-label="Helicopter flight playground. Click to fly; Escape opens the menu."></canvas>
+  <main>
+    <canvas id="hud" aria-label="Flight instruments"></canvas>
+    <div id="notification" role="status" aria-live="polite"></div>
+    <div id="mission-live" class="mission-live" hidden><strong id="objective"></strong><div class="progress"><div id="progress-fill"></div></div></div>
+    <aside class="nav"><canvas id="map" width="224" height="224" aria-label="Navigation map"></canvas></aside>
+    <footer><div class="instruments">
+      <div><strong id="speed">000</strong><span>km/h</span></div>
+      <div><strong id="alt">000</strong><span>m AGL</span></div>
+      <div><strong id="vsi">+0.0</strong><span>m/s</span></div>
+      <div class="collective"><strong id="collective">00</strong><span>collective</span><i><em id="collective-fill"></em></i></div>
+    </div></footer>
+    <button id="menu-toggle" class="menu-toggle" aria-label="Open flight menu">Esc</button>
+  </main>
+  <dialog id="setup-dialog" aria-label="Flight menu">
+    <div class="dialog-head"><h2>Paused</h2><button class="close" aria-label="Close menu">×</button></div>
+    <div class="setup-scroll">
+      <div class="tabs" role="group" aria-label="Menu panels"><button class="active" data-tab="world">Flight</button><button data-tab="controls">Controls</button><button data-tab="handling">Handling</button><button data-tab="reference">Test</button></div>
+      <section id="world-tab" class="tab-panel">
+        <label class="select-row">Look<select id="look-select"><option value="doodle">Doodle</option><option value="natural">Natural</option></select></label>
+        <label class="select-row">Challenge<select id="challenge"><option value="free">Free flight</option><option value="hover">Hover</option><option value="slalom">Slalom</option><option value="landing">Landing</option></select></label>
+        <button id="view" class="secondary">Chase <span>C</span></button><button id="restart" class="secondary">Reset <span>R</span></button>
+        <button id="fly" class="fly">Fly</button>
+        <button id="drag-flight" class="drag-flight" title="Fly without locking the pointer">Mouse drag</button>
+      </section>
+      <section id="controls-tab" class="tab-panel" hidden>
+        <div id="binding-list"></div>
+        <div id="mouse-settings"></div>
+        <label class="check"><input id="sound-toggle" type="checkbox" checked> Sound</label>
+        <button id="reference-setup" class="secondary" title="Hieb's bindings and camera settings, with assists off">Reference setup</button>
+      </section>
+      <section id="handling-tab" class="tab-panel" hidden>
+        <label class="select-row">Preset<select id="handling-preset"><option value="weighted">Little Bird</option><option value="v05">v0.5</option><option value="v04">v0.4</option><option value="previous">v0.3</option><option value="original">Original</option><option value="custom">Custom</option></select></label>
+        <label class="select-row">Collective<select id="collective-mode"><option value="spring">Spring</option><option value="hold">Hold</option></select></label>
+        <label class="check" title="Optional: latch parked after pressing collective down on the ground"><input id="ground-latch" type="checkbox"> Ground latch</label>
+        <div id="handling-settings"></div><button id="reset-tuning" class="secondary">Reset</button>
+      </section>
+      <section id="reference-tab" class="tab-panel" hidden>
+        <div class="reference-tests" aria-label="Timed pulses: 5 seconds neutral, 1 second input, 5 seconds coast"><button class="secondary pulse" data-axis="roll" title="Timed roll pulse">Roll pulse</button><button class="secondary pulse" data-axis="pitch" title="Timed pitch pulse">Pitch pulse</button><button class="secondary pulse" data-axis="yaw" title="Timed yaw pulse">Yaw pulse</button></div>
+        <button id="export" class="secondary">Export flight</button>
+        <a href="https://www.youtube.com/watch?v=sarU96OHVMI" target="_blank" rel="noreferrer">Reference ↗</a>
+      </section>
+    </div>
+    <div class="dialog-foot"><span id="save-status" role="status"></span><a href="/assets/credits.txt" target="_blank" rel="noreferrer">Credits</a><button id="export-settings">Export settings</button></div>
+  </dialog>
+  <noscript>This simulator needs JavaScript.</noscript>
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

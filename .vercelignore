@@ -1,0 +1,6 @@
+.openai/
+.env*
+.vercel/
+.git/
+node_modules/
+*.log
