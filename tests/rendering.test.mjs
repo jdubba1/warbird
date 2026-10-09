@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Scene,PerspectiveCamera,LinearSRGBColorSpace,SRGBColorSpace,Box3,Vector3,Vector2,Raycaster,Mesh,BoxGeometry,ShaderLib,AlwaysDepth} from '../dist/vendor/three.module.js';
 import {DoodleRenderer,simMaterial,setAccent,setSceneStyle} from '../dist/rendering.js';
+import {Miniguns,SIGHT_DIRECTION} from '../dist/weapons.js';
 import {verticalFov} from '../dist/camera.js';
 import {DEFAULTS} from '../dist/physics.js';
 import {makeCockpit,makeHelicopter} from '../dist/world.js';
@@ -33,12 +34,14 @@ test('reference cockpit keeps analog gauges left and a separate display low at t
   assert.ok(Math.abs((b.x-a.x)*16/9-(b.y-a.y))<1e-6,'wide FOV must not stretch circular gauges');
 });
 
-test('traced canopy and reflex sight match the reference while leaving the central window open',()=>{
+test('raised reflex sight sits near center and aligns with the gun sight ray',()=>{
   const camera=new PerspectiveCamera(verticalFov(DEFAULTS.cockpitFov),16/9,.04,1000),cockpit=makeCockpit();camera.add(cockpit.group);camera.updateMatrixWorld(true);
   const sight=cockpit.group.getObjectByName('Sight glass').getWorldPosition(new Vector3()).project(camera);
-  assert.ok((sight.x+1)/2>.60&&(sight.x+1)/2<.62);assert.ok((1-sight.y)/2>.59&&(1-sight.y)/2<.62);
+  assert.ok((sight.x+1)/2>.52&&(sight.x+1)/2<.54);assert.ok((1-sight.y)/2>.49&&(1-sight.y)/2<.51);
   const ray=new Raycaster();ray.layers.set(1);ray.setFromCamera(new Vector2(0,0),camera);
-  assert.equal(ray.intersectObjects(cockpit.group.children,true).filter(o=>o.object.isMesh).length,0,'no panel or frame should block the center of the window');
+  assert.equal(ray.intersectObjects(cockpit.group.children,true).filter(o=>o.object.isMesh&&o.object.material.opacity>=.5).length,0,'no panel or frame should block the center of the window');
+  const aim=cockpit.group.getObjectByName('Aim point').getWorldPosition(new Vector3()).normalize();
+  assert.ok(aim.distanceTo(new Vector3().fromArray(SIGHT_DIRECTION).normalize())<1e-8);
   assert.ok(cockpit.group.getObjectByName('Left canopy frame'));assert.ok(cockpit.group.getObjectByName('Right canopy rim'));
 });
 
@@ -88,4 +91,18 @@ test('a failed aircraft pass restores render state for the next frame',()=>{
   let target;renderer.setRenderTarget=value=>target=value;renderer.render=object=>{if(object===aircraft.group)throw new Error('Aircraft failure');};
   assert.throws(()=>visual.render(scene,camera,false,aircraft.group));
   assert.equal(camera.layers.mask,mask);assert.equal(renderer.autoClear,true);assert.equal(renderer.outputColorSpace,LinearSRGBColorSpace);assert.equal(target,null);
+});
+
+ test('orange impacts bypass both world looks, keep world depth and precede aircraft and cockpit',()=>{
+  const renderer=fake(),visual=new DoodleRenderer(renderer),scene=new Scene(),camera=new PerspectiveCamera(),aircraft=makeHelicopter(),weapons=new Miniguns(new Scene());
+  weapons.mark({point:new Vector3(0,0,-10),normal:new Vector3(0,0,1)});scene.add(weapons.marks,aircraft.group);
+  const color=weapons.marks.material.color.getHex();
+  for(const style of ['doodle','natural']){
+    renderer.passes=[];renderer.depthCleared=false;visual.setStyle(style);visual.render(scene,camera,true,aircraft.group,weapons.marks);
+    const i=renderer.passes.findIndex(p=>p.scene===weapons.marks),pass=renderer.passes[i];
+    assert.ok(i>0);assert.equal(pass.mask,8);assert.equal(pass.color,SRGBColorSpace);assert.equal(pass.clear,false);
+    assert.equal(renderer.passes[i+1].scene,aircraft.group);assert.equal(renderer.passes.at(-1).scene,camera);
+    assert.equal(weapons.marks.material.color.getHex(),color);assert.equal(weapons.marks.material.toneMapped,false);assert.equal(weapons.marks.material.depthTest,true);assert.equal(weapons.marks.material.depthWrite,false);
+    assert.equal(camera.layers.mask,1);assert.equal(renderer.autoClear,true);
+  }weapons.dispose();
 });

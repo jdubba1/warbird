@@ -29,12 +29,14 @@
       <section id="world-tab" class="tab-panel">
         <label class="select-row">Look<select id="look-select"><option value="doodle">Doodle</option><option value="natural">Natural</option></select></label>
         <label class="select-row">Challenge<select id="challenge"><option value="free">Free flight</option><option value="hover">Hover</option><option value="slalom">Slalom</option><option value="landing">Landing</option></select></label>
+        <label class="select-row">Zero<select id="gun-zero" aria-label="Minigun convergence distance"><option value="30">30 m</option><option value="50">50 m</option><option value="100">100 m</option></select></label>
         <button id="view" class="secondary">Chase <span>C</span></button><button id="restart" class="secondary">Reset <span>R</span></button>
         <button id="fly" class="fly">Fly</button>
         <button id="drag-flight" class="drag-flight" title="Fly without locking the pointer">Mouse drag</button>
       </section>
       <section id="controls-tab" class="tab-panel" hidden>
         <div id="binding-list"></div>
+        <div class="binding-row"><span>Fire</span><span>LMB / F</span></div>
         <div id="mouse-settings"></div>
         <label class="check"><input id="sound-toggle" type="checkbox" checked> Sound</label>
         <button id="reference-setup" class="secondary" title="Hieb's bindings and camera settings, with assists off">Reference setup</button>

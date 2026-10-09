@@ -2,6 +2,7 @@ import * as T from './vendor/three.module.js';
 import {PALETTE,MONO_FONT} from './palette.js';
 import {simMaterial} from './rendering.js';
 import {pads,gates,groundHeight,segments,WORLD_SIZE,nearRoute} from './terrain.js';
+import {SIGHT_POINT,makeGunMounts} from './weapons.js';
 import littleBird from './assets/little-bird.js';
 export {pads,gates,groundHeight} from './terrain.js';
 const material=simMaterial;
@@ -110,8 +111,9 @@ export function makeHelicopter(){
   const boom=new T.Mesh(new T.CylinderGeometry(.10,.23,axis.length(),16),materials.body);boom.name='Tailboom skin';boom.position.copy(start).add(end).multiplyScalar(.5);boom.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),axis.normalize());group.add(boom);
   // A separate world-depth-tested pass keeps every part out of the paper pass.
   // Its renderer outlines the silhouette in pixels, without inflating thin panels.
+  const guns=makeGunMounts();group.add(guns.group);
   group.traverse(object=>object.layers.set(2));
-  return {group,rotor,tail};
+  return {group,rotor,tail,barrels:guns.barrels,setGunZero:guns.setZero};
 }
 
 export function makeCockpit(){
@@ -124,9 +126,10 @@ export function makeCockpit(){
   // instruments at our wider FOV instead of stretching the reference to 16:9.
   const span=2*Math.tan(105*Math.PI/360)/(16/9);
   const at=(x,y,depth=1.2)=>new T.Vector3((x-749)/1252*span*depth,(626-y)/1252*span*depth,-depth);
-  const add=(geometry,material,point)=>{const mesh=new T.Mesh(geometry,material);mesh.position.copy(point);group.add(mesh);return mesh;};
+  let partParent=group;
+  const add=(geometry,material,point)=>{const mesh=new T.Mesh(geometry,material);mesh.position.copy(point);partParent.add(mesh);return mesh;};
   const line=(points,material=pen,loop=false)=>{
-    const geometry=new T.BufferGeometry().setFromPoints(points),stroke=loop?new T.LineLoop(geometry,material):new T.Line(geometry,material);group.add(stroke);return stroke;
+    const geometry=new T.BufferGeometry().setFromPoints(points),stroke=loop?new T.LineLoop(geometry,material):new T.Line(geometry,material);partParent.add(stroke);return stroke;
   };
   const tube=(points,radius,material=frame,depth=1.2)=>{
     const curve=new T.CatmullRomCurve3(points.map(([x,y])=>at(x,y,depth)));
@@ -167,6 +170,8 @@ export function makeCockpit(){
   const display=makePanel('Flight display',652,990,413,500,1.10,640,768);
   // Sight sits on a thin crossbar, with a rounded glass frame and open center.
   tube([[702,872],[819,880],[985,887],[1172,899],[1289,873]],.005,hardware,1.25);
+  const sightAssembly=new T.Group();sightAssembly.name='Raised sight';group.add(sightAssembly);
+  sightAssembly.position.copy(at(...SIGHT_POINT,1.265)).sub(at(981,753,1.265));partParent=sightAssembly;
   const glass=flat('#b7d1d5');glass.transparent=true;glass.opacity=.035;glass.depthWrite=false;
   const size=span*1.29/1252;
   const lens=add(new T.PlaneGeometry(146*size,147*size),glass,at(981,755,1.29));lens.name='Sight glass';
@@ -174,8 +179,12 @@ export function makeCockpit(){
   const base=add(new T.CylinderGeometry(.12,.135,.09,24),shell,at(981,877,1.24));base.name='Sight base';
   for(const y of [-.044,.044]){const ring=add(new T.TorusGeometry(.122,.006,6,48),hardware,base.position.clone().add(new T.Vector3(0,y,0)));ring.rotation.x=Math.PI/2;}
   circle(981,753,10,1.265,reticle);
+  const aim=new T.Object3D();aim.name='Aim point';aim.position.copy(at(981,753,1.265));sightAssembly.add(aim);
   for(const [x1,y1,x2,y2]of [[926,771,1035,735],[963,700,999,807]])line([at(x1,y1,1.265),at(x2,y2,1.265)],reticle);
   for(const [start,end]of [[.1,1.4],[1.75,3.05],[3.35,4.6],[4.95,6.15]])line(Array.from({length:18},(_,i)=>{const a=start+(end-start)*i/17;return at(981+Math.cos(a)*44,753+Math.sin(a)*44,1.265);}),reticle);
+  partParent=group;
+  const raisedBase=base.position.clone().add(sightAssembly.position);
+  const stem=new T.Mesh(new T.CylinderGeometry(.012,.012,.2,8),hardware);stem.position.copy(raisedBase).add(new T.Vector3(0,-.1,0));group.add(stem);
   for(const [x,y]of [[710,1010],[986,1018],[1350,887]])add(new T.SphereGeometry(.007,8,5),hardware,at(x,y,1.07));
   let last=-Infinity,style='doodle',latest;
   const update=t=>{

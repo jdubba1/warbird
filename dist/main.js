@@ -5,14 +5,15 @@ import {Controls,BINDINGS,keyLabel} from './controls.js';
 import {makeWorld,makeHelicopter,makeCockpit,groundHeight,pads,gates} from './world.js';
 import {DoodleRenderer,setAccent} from './rendering.js';
 import {FlightCamera,verticalFov} from './camera.js';
+import {Miniguns,aimPoint} from './weapons.js';
 import {setMap,mapId} from './terrain.js';
 
 const $=id=>document.getElementById(id);
 const config={...DEFAULTS},bindings={...BINDINGS};
-let look='doodle';
+let look='doodle',gunZero=30;
 try {
   const saved=JSON.parse(localStorage.getItem('rotor-lab-v1')||'null');
-  if(saved){look=saved.look==='natural'?'natural':'doodle';setMap(saved.map);for(const k of Object.keys(DEFAULTS)){const v=saved.config?.[k];if(typeof v===typeof DEFAULTS[k]&&(typeof v!=='number'||Number.isFinite(v)))config[k]=v;}for(const k of Object.keys(BINDINGS)){const v=saved.bindings?.[k];if(typeof v==='string'&&v.length<32)bindings[k]=v;}}
+  if(saved){if([30,50,100].includes(saved.gunZero))gunZero=saved.gunZero;look=saved.look==='natural'?'natural':'doodle';setMap(saved.map);for(const k of Object.keys(DEFAULTS)){const v=saved.config?.[k];if(typeof v===typeof DEFAULTS[k]&&(typeof v!=='number'||Number.isFinite(v)))config[k]=v;}for(const k of Object.keys(BINDINGS)){const v=saved.bindings?.[k];if(typeof v==='string'&&v.length<32)bindings[k]=v;}}
   // Upgrade only the unchanged v1 thrust response. Preserve deliberate tuning.
   if(saved && saved.config?.angularInertia===undefined && saved.config?.rotorLag===ORIGINAL_DEFAULTS.rotorLag)config.rotorLag=DEFAULTS.rotorLag;
   if(saved)migrateHandling(config,saved.config,saved.version);
@@ -29,6 +30,7 @@ const scene=new T.Scene(),camera=new T.PerspectiveCamera(verticalFov(config.chas
 let world=makeWorld(scene);const aircraft=makeHelicopter();scene.add(aircraft.group);
 const cockpitModel=makeCockpit();cockpitModel.setStyle(look);camera.add(cockpitModel.group);scene.add(camera);cockpitModel.group.visible=false;
 const flightCamera=new FlightCamera();
+const weapons=new Miniguns(world.root,{zero:gunZero});scene.add(weapons.marks);aircraft.setGunZero(gunZero);
 const hud=$('hud').getContext('2d'),map=$('map').getContext('2d');
 let mode='free',active=false,hasFlown=false,cockpit=false,missionDone=false,hoverTime=0,landingTime=0,gateIndex=0;
 let accumulator=0,previous=performance.now(),lastHUD=0,logClock=0,notificationTimer,dragChosen=false;
@@ -40,7 +42,7 @@ camera.position.set(10,7.5,17);camera.lookAt(0,1,-8);
 
 function dismissNotification(){clearTimeout(notificationTimer);$('notification').classList.remove('show');$('notification').textContent='';}
 function toast(text,duration=4500){$('notification').textContent=text;$('notification').classList.add('show');clearTimeout(notificationTimer);if(duration>0)notificationTimer=setTimeout(dismissNotification,duration);}
-function save(){heli.config={...config};try{localStorage.setItem('rotor-lab-v1',JSON.stringify({version:'0.10.0',config,bindings,map:mapId,look}));$('save-status').textContent='Saved';}catch{$('save-status').textContent='Save unavailable';}}
+function save(){heli.config={...config};try{localStorage.setItem('rotor-lab-v1',JSON.stringify({version:'0.10.0',config,bindings,map:mapId,look,gunZero}));$('save-status').textContent='Saved';}catch{$('save-status').textContent='Save unavailable';}}
 function stopFlight(){
   active=false;accumulator=0;controls.enabled=false;controls.clear();audio.volume(0);
   document.body.classList.remove('flying');
@@ -52,7 +54,7 @@ const controls=new Controls($('scene'),config,bindings,{reset:()=>resetFlight(),
 },error:msg=>{setup();toast(msg,8000);}});
 
 function resetFlight(){
-  dismissNotification();
+  dismissNotification();weapons.reset();
   needsRender=true;
   flightCamera.reset();
   sessionId++;hoverTime=landingTime=gateIndex=0;missionDone=false;logClock=0;pulse=null;controls.clear();
@@ -65,6 +67,8 @@ function resetFlight(){
   $('fly').textContent=hasFlown?'Resume':'Fly';
 }
 function chooseMode(next){mode=next;$('challenge').value=mode;resetFlight();}
+$('gun-zero').value=gunZero;
+$('gun-zero').addEventListener('change',e=>{gunZero=Number(e.target.value);weapons.zero=gunZero;aircraft.setGunZero(gunZero);save();needsRender=true;});
 $('challenge').addEventListener('change',e=>chooseMode(e.target.value));
 $('look-select').value=look;
 $('look-select').addEventListener('change',e=>{look=e.target.value==='natural'?'natural':'doodle';visual.setStyle(look);cockpitModel.setStyle(look);save();needsRender=true;});
@@ -80,7 +84,7 @@ $('scene').addEventListener('click',()=>{if(!controls.locked&&!dragChosen&&!$('s
 addEventListener('keydown',e=>{
   if(heli.crashed&&e.code==='KeyR'&&!e.repeat&&!controls.capture){e.preventDefault();if($('setup-dialog').open)$('setup-dialog').close();resetFlight();controls.enabled=true;return;}
   if(e.code==='Escape'&&!e.repeat&&!controls.capture&&!controls.enabled&&!$('setup-dialog').open){e.preventDefault();setup();return;}
-  if(!active&&controls.enabled&&!$('setup-dialog').open&&!e.target.matches('input,select,textarea,button')&&Object.values(bindings).includes(e.code)){audio.start();controls.startDrag(false);}
+  if(!active&&controls.enabled&&!$('setup-dialog').open&&!e.target.matches('input,select,textarea,button')&&(Object.values(bindings).includes(e.code)||e.code==='KeyF')){audio.start();controls.startDrag(false);}
 });
 function setView(value){needsRender=true;cockpit=value;document.body.classList.toggle('cockpit-view',cockpit);cockpitModel.group.visible=cockpit;aircraft.group.visible=!cockpit;$('view').innerHTML=cockpit?'Cockpit <span>C</span>':'Chase <span>C</span>';flightCamera.update(camera,heli,0,cockpit,config);}
 $('view').addEventListener('click',()=>{setView(!cockpit);$('view').blur();});
@@ -125,7 +129,7 @@ function renderBindings(){
     actions.forEach((action,i)=>{
       const button=document.createElement('button');button.textContent=`${directions[i]} ${keyLabel(bindings[action])}`;button.setAttribute('aria-label',`Rebind ${fieldLabels[action]}`);button.title=fieldLabels[action];
       button.addEventListener('click',()=>{button.textContent='Key?';controls.capture=code=>{
-        if(['Escape','KeyR','KeyC','KeyV','Tab','MetaLeft','MetaRight'].includes(code)){toast('Reserved key');renderBindings();return;}
+        if(['Escape','KeyR','KeyC','KeyV','KeyF','Tab','MetaLeft','MetaRight'].includes(code)){toast('Reserved key');renderBindings();return;}
         const used=Object.keys(bindings).find(k=>k!==action&&bindings[k]===code);
         if(used){toast(`${keyLabel(code)}: ${fieldLabels[used]}`);renderBindings();return;}
         bindings[action]=code;save();renderBindings();
@@ -204,13 +208,13 @@ function drawMap(t){
 }
 function drawHUD(t){
   const w=innerWidth,h=innerHeight;hud.clearRect(0,0,w,h);
-  const cx=w/2,cy=h*.5,instrumentY=h-120;hud.strokeStyle=PALETTE.ink+'99';hud.fillStyle=PALETTE.ink;hud.lineWidth=1;hud.font=`13px ${MONO_FONT}`;hud.textAlign='center';
+  const cx=w/2,instrumentY=h-120;hud.strokeStyle=PALETTE.ink+'99';hud.fillStyle=PALETTE.ink;hud.lineWidth=1;hud.font=`13px ${MONO_FONT}`;hud.textAlign='center';
   // Body pitch and bank are shown separately from flight-path direction.
   // No rectangular clip: banked ladder marks and labels keep their full extent.
   if(!cockpit){
   hud.save();hud.translate(cx,instrumentY);hud.rotate(-t.roll*Math.PI/180);
   for(let p=-90;p<=90;p+=10){const y=(t.pitch-p)*1.15;if(Math.abs(y)>42)continue;const width=p===0?65:28;hud.beginPath();hud.moveTo(-width,y);hud.lineTo(-10,y);hud.moveTo(10,y);hud.lineTo(width,y);hud.stroke();if(p){hud.fillText(`${p}`,width+15,y+3);hud.fillText(`${p}`,-width-15,y+3);}}
-  hud.restore();hud.strokeStyle=PALETTE.accent;hud.lineWidth=1.5;hud.beginPath();hud.moveTo(cx-35,instrumentY);hud.lineTo(cx-12,instrumentY);hud.lineTo(cx-12,instrumentY+5);hud.moveTo(cx+35,instrumentY);hud.lineTo(cx+12,instrumentY);hud.lineTo(cx+12,instrumentY+5);hud.stroke();hud.beginPath();hud.arc(cx,cy,4,0,Math.PI*2);hud.stroke();
+  hud.restore();hud.strokeStyle=PALETTE.accent;hud.lineWidth=1.5;hud.beginPath();hud.moveTo(cx-35,instrumentY);hud.lineTo(cx-12,instrumentY);hud.lineTo(cx-12,instrumentY+5);hud.moveTo(cx+35,instrumentY);hud.lineTo(cx+12,instrumentY);hud.lineTo(cx+12,instrumentY+5);hud.stroke();hud.beginPath();const aim=aimPoint(gunZero).applyQuaternion(heli.orientation).add(heli.position).project(camera);if(aim.z<1&&aim.z>-1){hud.arc((aim.x+1)*w/2,(1-aim.y)*h/2,4,0,Math.PI*2);hud.stroke();}
   }
   hud.fillStyle=PALETTE.ink;hud.fillText(`${Math.round(t.heading).toString().padStart(3,'0')}°`,cx,28);
   hud.strokeStyle=PALETTE.ink+'99';hud.lineWidth=1;for(let d=-30;d<=30;d+=10){const x=cx+d*4;hud.beginPath();hud.moveTo(x,36);hud.lineTo(x,42);hud.stroke();hud.fillText(Math.round((t.heading+d+360)%360).toString().padStart(3,'0'),x,55);}
@@ -230,18 +234,18 @@ function frame(now){
     input=controls.frame(dt);accumulator+=dt;
     while(accumulator>=STEP){
       if(pulse){input={pitch:0,roll:0,yaw:0,collective:0,collectiveAbsolute:.5};if(heli.time>=5&&heli.time<6)input[pulse.axis]=1;}
-      previousPos.copy(heli.position);heli.step(input,STEP,world.surface,world.obstacles);updateMission(STEP);record(STEP);accumulator-=STEP;
+      previousPos.copy(heli.position);heli.step(input,STEP,world.surface,world.obstacles);if(!heli.crashed)weapons.step(heli,input.fire,STEP);updateMission(STEP);record(STEP);accumulator-=STEP;
       if(heli.crashed){stopFlight();needsRender=true;toast('Press R to reset',0);break;}
       if(pulse&&heli.time>=11){const axis=pulse.axis;setup();pulse=null;toast(`${axis[0].toUpperCase()+axis.slice(1)} pulse complete`,10000);break;}
     }
     audio.volume(active?.025+heli.collective*.04:0);
   }
   aircraft.group.position.copy(heli.position);aircraft.group.quaternion.copy(heli.orientation);
-  if(active){aircraft.rotor.rotation.y+=dt*37;aircraft.tail.rotation.x+=dt*74;}
+  if(active){if(input.fire)for(const barrel of aircraft.barrels)barrel.rotation.z+=dt*220;aircraft.rotor.rotation.y+=dt*37;aircraft.tail.rotation.x+=dt*74;}
   flightCamera.update(camera,heli,dt,cockpit,config);
   if(!cockpit)camera.position.y=Math.max(camera.position.y,groundHeight(camera.position.x,camera.position.z)+1);
   const cameraMoving=oldCamera.distanceToSquared(camera.position)>1e-8||oldRotation.angleTo(camera.quaternion)>1e-5;
-  if(active||needsRender||cameraMoving){visual.render(scene,camera,cockpit,aircraft.group);if(now-lastHUD>50){lastHUD=now;updateHUD();}needsRender=false;}
+  if(active||needsRender||cameraMoving){visual.render(scene,camera,cockpit,aircraft.group,weapons.marks);if(now-lastHUD>50){lastHUD=now;updateHUD();}needsRender=false;}
 }
 $('scene').addEventListener('webglcontextlost',e=>{e.preventDefault();setup();toast('Graphics context lost. Reload to restart the range.',20000);});
 renderBindings();renderSliders();resetFlight();controls.enabled=true;requestAnimationFrame(frame);

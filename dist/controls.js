@@ -5,7 +5,7 @@ export class Controls {
   constructor(canvas,config,bindings,callbacks={}) {
     this.canvas=canvas;this.config=config;this.bindings=bindings;this.callbacks=callbacks;
     this.keys=new Set();this.mouse={x:0,y:0};this.pending={x:0,y:0};
-    this.locked=false;this.enabled=false;this.dragMode=false;this.dragging=false;this.capture=null;
+    this.firing=false;this.locked=false;this.enabled=false;this.dragMode=false;this.dragging=false;this.capture=null;
     addEventListener('keydown',e=>{
       if(this.capture){e.preventDefault();const cb=this.capture;this.capture=null;cb(e.code);return;}
       if(e.code==='Escape'&&this.enabled){e.preventDefault();this.callbacks.pause?.();return;}
@@ -21,14 +21,17 @@ export class Controls {
     document.addEventListener('visibilitychange',()=>{if(document.hidden){this.clear();this.callbacks.pause?.();}});
     document.addEventListener('pointerlockchange',()=>{this.locked=document.pointerLockElement===canvas;this.enabled=this.locked;this.dragMode=false;this.clear();this.callbacks.lock?.(this.locked);});
     document.addEventListener('pointerlockerror',()=>this.callbacks.error?.('Mouse capture was refused. Try a direct click in the browser, or use click-drag flight.'));
+    canvas.addEventListener('mousedown',e=>{if(this.enabled&&this.locked&&!this.dragMode&&e.button===0)this.firing=true;});
     canvas.addEventListener('pointerdown',e=>{if(this.dragMode&&this.enabled){this.dragging=true;canvas.setPointerCapture(e.pointerId);}});
     canvas.addEventListener('pointerup',()=>{this.dragging=false;});
     canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
+    document.addEventListener('mouseup',e=>{if(e.button===0)this.firing=false;});
+    document.addEventListener('pointercancel',()=>{this.firing=false;});
     document.addEventListener('mousemove',e=>{if(this.locked||(this.enabled&&this.dragMode&&this.dragging)){this.pending.x+=e.movementX;this.pending.y+=e.movementY;}});
   }
   async lock(){this.dragMode=false;try{await this.canvas.requestPointerLock();}catch{this.callbacks.error?.('Mouse capture was refused. Try a direct click in the browser, or use click-drag flight.');}}
   startDrag(clear=true){if(clear)this.clear();this.dragMode=true;this.enabled=true;this.callbacks.lock?.(true);}
-  clear(){this.keys.clear();this.dragging=false;this.mouse.x=this.mouse.y=this.pending.x=this.pending.y=0;}
+  clear(){this.firing=false;this.keys.clear();this.dragging=false;this.mouse.x=this.mouse.y=this.pending.x=this.pending.y=0;}
   frame(dt){
     // Convert distance per frame into a rate so sensitivity does not depend on FPS.
     const seconds=Math.max(dt,1/240);
@@ -37,6 +40,6 @@ export class Controls {
     this.pending.x=this.pending.y=0;
     const axis=v=>Math.sign(v)*Math.pow(Math.abs(v),this.config.mouseCurve);
     const k=action=>this.keys.has(this.bindings[action])?1:0;
-    return {roll:clamp(axis(this.mouse.x)+k('rollRight')-k('rollLeft'),-1,1),pitch:clamp(axis(this.mouse.y)+k('pitchUp')-k('pitchDown'),-1,1),yaw:k('yawRight')-k('yawLeft'),collective:k('collectiveUp')-k('collectiveDown')};
+    return {roll:clamp(axis(this.mouse.x)+k('rollRight')-k('rollLeft'),-1,1),pitch:clamp(axis(this.mouse.y)+k('pitchUp')-k('pitchDown'),-1,1),yaw:k('yawRight')-k('yawLeft'),collective:k('collectiveUp')-k('collectiveDown'),fire:this.enabled&&(this.firing||this.keys.has('KeyF'))};
   }
 }

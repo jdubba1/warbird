@@ -271,7 +271,7 @@ export class DoodleRenderer {
   }
   setStyle(style){this.style=style==='natural'?'natural':'doodle';}
   resize(){this.renderer.getDrawingBufferSize(this.size);this.target.setSize(this.size.x,this.size.y);this.aircraftTarget.setSize(this.size.x,this.size.y);for(const material of [this.material,this.aircraftMaterial]){material.uniforms.resolution.value.copy(this.size);material.uniforms.pixelRatio.value=this.renderer.getPixelRatio();}}
-  render(scene,camera,cockpit=false,aircraft=null){
+  render(scene,camera,cockpit=false,aircraft=null,impacts=null){
     const mask=camera.layers.mask,autoClear=this.renderer.autoClear;
     camera.updateMatrixWorld();light.value.copy(this.direction).transformDirection(camera.matrixWorldInverse);
     try{
@@ -288,6 +288,10 @@ export class DoodleRenderer {
       this.renderer.setRenderTarget(this.target);this.renderer.setClearColor(new T.Color(1,0,.5),.5);this.renderer.clear();this.renderer.render(scene,camera);
       const u=this.material.uniforms;u.nearPlane.value=camera.near;u.farPlane.value=camera.far;
       this.renderer.setRenderTarget(null);this.renderer.render(this.scene,this.camera);
+      }
+      if(impacts?.count){
+        this.renderer.autoClear=false;this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.NoToneMapping;
+        camera.layers.set(3);this.renderer.render(impacts,camera);
       }
       if(aircraft?.visible){
         // Render the flat aircraft alone, then add a clean outer silhouette.

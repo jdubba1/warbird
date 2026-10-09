@@ -1,12 +1,12 @@
 {
   "name": "warbird",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check dist/main.js && node --check dist/physics.js && node --check dist/world.js && node --check dist/controls.js && node --check dist/rendering.js && node --check dist/camera.js && node --check dist/terrain.js && node --check dist/palette.js && npm test"
+    "check": "node --check dist/main.js && node --check dist/physics.js && node --check dist/world.js && node --check dist/controls.js && node --check dist/rendering.js && node --check dist/camera.js && node --check dist/terrain.js && node --check dist/palette.js && node --check dist/weapons.js && npm test"
   },
   "description": "A browser helicopter playground inspired by WARDOGS.",
   "license": "MIT",

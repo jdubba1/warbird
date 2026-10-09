@@ -1,5 +1,7 @@
 import {Vector3,Quaternion} from './vendor/three.module.js';
 
+export const PILOT_OFFSET=Object.freeze([.43,.48,-.65]);
+
 // Match a horizontal FOV at 16:9, then preserve its vertical coverage on resize.
 // The source says 89 degrees. Its exact Unreal aspect-axis policy is unverified.
 export const verticalFov = (horizontal,aspect=16/9) =>
@@ -19,7 +21,7 @@ export class FlightCamera {
     if(Math.abs(camera.fov-fov)>1e-6){camera.fov=fov;camera.updateProjectionMatrix();}
     if(cockpit){
       // Pilot sits on the right, as visible in the reference. Offsets estimated.
-      this.offset.set(.43,.48,-.65).applyQuaternion(heli.orientation);
+      this.offset.fromArray(PILOT_OFFSET).applyQuaternion(heli.orientation);
       camera.position.copy(heli.position).add(this.offset);
       camera.quaternion.copy(heli.orientation);
       this.initialized=false;

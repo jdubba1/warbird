@@ -26,9 +26,12 @@ Open http://localhost:5173. Click to capture the mouse; Escape opens controls, r
 | Mouse left / right | Roll left / right |
 | Mouse up / down | Pitch down / up |
 | Space / Left Ctrl | Pitch up / down |
+| Left mouse / F | Fire miniguns (F in mouse-drag mode) |
 | C | Switch cockpit / chase |
 | R | Reset |
 | Escape | Pause menu |
+
+Twin miniguns fire from fixed mounts toward a provisional 30 m zero. Choose 30 / 50 / 100 m under **Zero** in the pause menu. Close impacts sit below the sight and apart; beyond the zero the streams cross and rise relative to the sight until drop takes over. Rounds inherit helicopter momentum. Orange surface marks clear on reset. Bullet speed and rate are estimates, not measured WARDOGS values.
 
 ## Contribute
 
@@ -46,6 +49,7 @@ This runs syntax checks and the Node behavior tests. Tests cover flight dynamics
 - `dist/controls.js`: keyboard, mouse capture and rebinding.
 - `dist/world.js`, `dist/terrain.js`: mountains, obstacles, helicopter and cockpit geometry.
 - `dist/camera.js`, `dist/rendering.js`, `dist/palette.js`: chase/cockpit cameras, doodle postprocessing and unshaded aircraft overlay.
+- `dist/weapons.js`: twin fixed guns, ballistic rounds, visible-surface collision index and bounded orange impact marks.
 - `dist/main.js`: HUD, pause menu, challenges and calibration.
 - `tests/`: Node tests; `reference/`: manually sampled public flight data and diagnostic fits.
 
