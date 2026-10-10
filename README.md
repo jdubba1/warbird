@@ -39,7 +39,7 @@ Standard controllers: left stick pitch/roll, right stick yaw, LT/RT lower/raise 
 
 Calibration pulses, flight/settings exports and Hieb's reference setup are under **Handling → Calibration**. GitHub, Twitter, jimbo.sh and credits are linked in the pause menu footer.
 
-Twin miniguns fire from fixed mounts toward a provisional 30 m zero. Choose 30 / 50 / 100 m under **Zero** in the pause menu. Close impacts sit below the sight and apart; beyond the zero the streams cross and rise relative to the sight until drop takes over. Rounds inherit helicopter momentum. Orange surface marks clear on reset. Bullet speed and rate are estimates, not measured WARDOGS values.
+Twin miniguns fire from fixed mounts toward a provisional 30 m zero. Choose 30 / 50 / 100 m under **Zero** in the pause menu. Close impacts sit below the sight and apart; beyond the zero the streams cross and rise relative to the sight until drop takes over. Rounds inherit helicopter momentum. Every third round has an orange tracer, visible in either camera and rendering style. Tracers stop at surfaces; orange surface marks clear on reset. Bullet speed and rate are estimates, not measured WARDOGS values.
 
 ## Contribute
 

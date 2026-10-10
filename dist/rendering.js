@@ -289,7 +289,7 @@ export class DoodleRenderer {
       const u=this.material.uniforms;u.nearPlane.value=camera.near;u.farPlane.value=camera.far;
       this.renderer.setRenderTarget(null);this.renderer.render(this.scene,this.camera);
       }
-      if(impacts?.count){
+      if(impacts?.count||impacts?.children?.some(child=>child.count>0)){
         this.renderer.autoClear=false;this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.NoToneMapping;
         camera.layers.set(3);this.renderer.render(impacts,camera);
       }

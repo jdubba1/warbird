@@ -81,17 +81,29 @@ export class Miniguns {
     this.marks=new T.InstancedMesh(new T.CircleGeometry(.16,12),new T.MeshBasicMaterial({color:'#f77724',side:T.DoubleSide,fog:false,toneMapped:false,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),capacity);
     this.marks.name='Orange bullet marks';this.marks.count=0;this.marks.layers.set(3);this.marks.frustumCulled=false;this.marks.instanceMatrix.setUsage(T.DynamicDrawUsage);
     this.stamp=new T.Object3D();this.normalAxis=new T.Vector3(0,0,1);
+    const tracerGeometry=new T.BufferGeometry();tracerGeometry.setAttribute('position',new T.BufferAttribute(new Float32Array(256*6),3).setUsage(T.DynamicDrawUsage));tracerGeometry.setDrawRange(0,0);
+    this.tracers=new T.LineSegments(tracerGeometry,new T.LineBasicMaterial({color:'#ef7b32',fog:false,toneMapped:false,depthWrite:false}));
+    this.tracers.name='Tracer rounds';this.tracers.count=0;this.tracers.layers.set(3);this.tracers.frustumCulled=false;
+    this.effects=new T.Group();this.effects.name='Gun effects';this.effects.layers.set(3);this.effects.add(this.marks,this.tracers);
+    this.streaks=[];
   }
   mark(hit){
     this.stamp.position.copy(hit.point).addScaledVector(hit.normal,.006);this.stamp.quaternion.setFromUnitVectors(this.normalAxis,hit.normal);this.stamp.updateMatrix();
     this.marks.setMatrixAt(this.cursor,this.stamp.matrix);this.cursor=(this.cursor+1)%this.capacity;this.marks.count=Math.min(this.capacity,this.marks.count+1);this.marks.instanceMatrix.needsUpdate=true;
   }
   step(heli,fire,dt){
+    this.streaks=this.streaks.filter(streak=>(streak.life-=dt)>0);
     const alive=[];
     for(const round of this.rounds){
       const end=round.position.clone().addScaledVector(round.velocity,dt);end.y-=GRAVITY*dt*dt/2;
       const hit=this.surface.cast(round.position,end);round.age+=dt;
-      if(hit)this.mark(hit);
+      if(hit){
+        this.mark(hit);
+        if(round.tracer&&this.streaks.length<256){
+          const age=round.age-dt+dt*hit.distance/round.position.distanceTo(end);
+          this.streaks.push({start:this.tracerStart(round,hit.point,age),end:hit.point.clone(),life:.05});
+        }
+      }
       else if(round.age<2){round.position.copy(end);round.velocity.y-=GRAVITY*dt;alive.push(round);}
     }
     this.rounds=alive;
@@ -99,11 +111,25 @@ export class Miniguns {
     this.clock+=dt;
     while(this.clock+1e-9>=1/SHOT_RATE){
       this.clock-=1/SHOT_RATE;
-      for(let side=0;side<2;side++){this.shots++;if(this.rounds.length<256)this.rounds.push(launchRound(heli,side,this.zero));}
+      const tracer=(this.shots/2)%3===0;
+      for(let side=0;side<2;side++){this.shots++;if(this.rounds.length<256){const round=launchRound(heli,side,this.zero);round.tracer=tracer;this.rounds.push(round);}}
     }
   }
-  reset(){this.rounds=[];this.clock=0;this.shots=0;this.cursor=0;this.marks.count=0;}
-  dispose(){this.marks.geometry.dispose();this.marks.material.dispose();}
+  tracerStart(round,end,age=round.age){return end.clone().addScaledVector(round.velocity,-Math.min(age,16/round.velocity.length()));}
+  updateTracers(){
+    let count=0;const positions=this.tracers.geometry.attributes.position;const draw=(start,end)=>{
+      if(count>=256)return;
+      if(start.distanceToSquared(end)<1e-6)return;
+      positions.setXYZ(count*2,start.x,start.y,start.z);positions.setXYZ(count*2+1,end.x,end.y,end.z);count++;
+    };
+    for(const round of this.rounds)if(round.tracer)draw(this.tracerStart(round,round.position),round.position);
+    // Briefly retain the last, clipped segment so nearby hits remain readable
+    // when a bullet's entire flight fits between two rendered frames.
+    for(const streak of this.streaks)draw(streak.start,streak.end);
+    this.tracers.count=count;this.tracers.geometry.setDrawRange(0,count*2);positions.needsUpdate=true;
+  }
+  reset(){this.rounds=[];this.streaks=[];this.clock=0;this.shots=0;this.cursor=0;this.marks.count=this.tracers.count=0;this.tracers.geometry.setDrawRange(0,0);}
+  dispose(){for(const mesh of [this.marks,this.tracers]){mesh.geometry.dispose();mesh.material.dispose();}}
 }
 
 export function makeGunMounts(){

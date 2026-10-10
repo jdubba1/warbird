@@ -106,3 +106,17 @@ test('a failed aircraft pass restores render state for the next frame',()=>{
     assert.equal(camera.layers.mask,1);assert.equal(renderer.autoClear,true);
   }weapons.dispose();
 });
+
+test('tracers render without impacts in both looks, depth-tested before the cockpit and flat aircraft',()=>{
+  const renderer=fake(),visual=new DoodleRenderer(renderer),scene=new Scene(),camera=new PerspectiveCamera(),aircraft=makeHelicopter(),weapons=new Miniguns(new Scene());
+  weapons.step({position:new Vector3(),orientation:aircraft.group.quaternion,velocity:new Vector3()},true,.02);
+  weapons.step({position:new Vector3(),orientation:aircraft.group.quaternion,velocity:new Vector3()},false,.01);weapons.updateTracers();
+  assert.equal(weapons.marks.count,0);assert.equal(weapons.tracers.count,2);scene.add(weapons.effects,aircraft.group);
+  for(const style of ['doodle','natural']){
+    renderer.passes=[];visual.setStyle(style);visual.render(scene,camera,true,aircraft.group,weapons.effects);
+    const i=renderer.passes.findIndex(p=>p.scene===weapons.effects),pass=renderer.passes[i];assert.ok(i>0);assert.equal(pass.mask,8);assert.equal(pass.color,SRGBColorSpace);assert.equal(pass.clear,false);
+    assert.equal(renderer.passes[i+1].scene,aircraft.group);assert.equal(renderer.passes.at(-1).scene,camera);
+    assert.equal(weapons.tracers.material.toneMapped,false);assert.equal(weapons.tracers.material.depthTest,true);assert.equal(weapons.tracers.material.depthWrite,false);
+  }
+  weapons.reset();renderer.passes=[];visual.render(scene,camera,false,aircraft.group,weapons.effects);assert.equal(renderer.passes.some(p=>p.scene===weapons.effects),false);weapons.dispose();
+});

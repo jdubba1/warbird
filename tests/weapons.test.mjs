@@ -78,3 +78,32 @@ test('twin firing cadence is independent of frame rate and empty-air projectiles
     assert.equal(guns.rounds.length,0);assert.equal(guns.marks.count,0);guns.dispose();
   }
 });
+
+test('tracers follow moving world-space rounds, sample both guns and stay bounded',()=>{
+  const h=heli();h.position.set(20,100,-40);h.velocity.set(16,-3,-70);h.orientation.setFromEuler(new T.Euler(.2,.6,.4));
+  const guns=new Miniguns(new T.Group());
+  for(let i=0;i<12;i++)guns.step(h,true,1/120);
+  guns.updateTracers();assert.equal(guns.shots,10);assert.equal(guns.tracers.count,4);
+  const positions=guns.tracers.geometry.attributes.position;let i=0;
+  for(const round of guns.rounds.filter(r=>r.tracer)){
+    const start=new T.Vector3().fromBufferAttribute(positions,i++),end=new T.Vector3().fromBufferAttribute(positions,i++);
+    assert.ok(end.distanceTo(round.position)<.0001);assert.ok(start.distanceTo(guns.tracerStart(round,round.position))<.0001);assert.ok(start.distanceTo(end)<=16.0001);
+  }
+  assert.equal(guns.tracers.geometry.drawRange.count,guns.tracers.count*2);
+  for(let i=0;i<600;i++)guns.step(h,true,1/120);guns.updateTracers();assert.ok(guns.tracers.count>0&&guns.tracers.count<=256);
+  for(let i=0;i<300;i++)guns.step(h,false,1/120);guns.updateTracers();assert.equal(guns.tracers.count,0);guns.dispose();
+});
+test('close-hit tracers end at the wall, remain briefly visible and clear on expiry or reset',()=>{
+  const root=new T.Group(),wall=new T.Mesh(new T.BoxGeometry(20,20,.03),basic());wall.position.z=-30;root.add(wall);
+  const guns=new Miniguns(root);guns.step(heli(),true,.02);
+  for(let i=0;i<5;i++)guns.step(heli(),false,1/120);
+  guns.updateTracers();assert.equal(guns.rounds.length,0);assert.equal(guns.marks.count,2);assert.equal(guns.tracers.count,2);
+  const positions=guns.tracers.geometry.attributes.position;for(let i=0;i<2;i++){
+    const start=new T.Vector3().fromBufferAttribute(positions,i*2),end=new T.Vector3().fromBufferAttribute(positions,i*2+1);
+    assert.ok(Math.abs(end.z+29.985)<.001);assert.ok(start.z>end.z);assert.ok(start.z-end.z<=16);
+  }
+  for(let i=0;i<7;i++)guns.step(heli(),false,1/120);guns.updateTracers();assert.equal(guns.tracers.count,0);assert.equal(guns.marks.count,2);
+  guns.step(heli(),true,.06);guns.step(heli(),false,.01);guns.updateTracers();assert.equal(guns.tracers.count,2);
+  guns.reset();guns.updateTracers();assert.equal(guns.tracers.count,0);assert.equal(guns.streaks.length,0);assert.equal(guns.marks.count,0);
+  let disposed=0;guns.tracers.geometry.addEventListener('dispose',()=>disposed++);guns.tracers.material.addEventListener('dispose',()=>disposed++);guns.dispose();assert.equal(disposed,2);
+});

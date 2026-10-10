@@ -33,7 +33,7 @@ let world=makeWorld(scene);const aircraft=makeHelicopter();scene.add(aircraft.gr
 const cockpitModel=makeCockpit();cockpitModel.setStyle(look);camera.add(cockpitModel.group);scene.add(camera);cockpitModel.group.visible=false;
 const flightCamera=new FlightCamera();
 const gamepad=new GamepadInput();let controllerClick=false,controllerUsed=false;
-const weapons=new Miniguns(world.root,{zero:gunZero});scene.add(weapons.marks);aircraft.setGunZero(gunZero);
+const weapons=new Miniguns(world.root,{zero:gunZero});scene.add(weapons.effects);aircraft.setGunZero(gunZero);
 const hud=$('hud').getContext('2d'),map=$('map').getContext('2d');
 let mode='free',active=false,hasFlown=false,cockpit=false,missionDone=false,hoverTime=0,landingTime=0,gateIndex=0;
 let accumulator=0,previous=performance.now(),lastHUD=0,logClock=0,notificationTimer,dragChosen=false;
@@ -284,7 +284,7 @@ function frame(now){
   flightCamera.update(camera,heli,dt,cockpit,config);
   if(!cockpit)camera.position.y=Math.max(camera.position.y,groundHeight(camera.position.x,camera.position.z)+1);
   const cameraMoving=oldCamera.distanceToSquared(camera.position)>1e-8||oldRotation.angleTo(camera.quaternion)>1e-5;
-  if(active||needsRender||cameraMoving){visual.render(scene,camera,cockpit,aircraft.group,weapons.marks);if(now-lastHUD>50){lastHUD=now;updateHUD();}needsRender=false;}
+  if(active||needsRender||cameraMoving){weapons.updateTracers();visual.render(scene,camera,cockpit,aircraft.group,weapons.effects);if(now-lastHUD>50){lastHUD=now;updateHUD();}needsRender=false;}
 }
 $('scene').addEventListener('webglcontextlost',e=>{e.preventDefault();setup();toast('Graphics lost. Reload to restart.',0);});
 renderBindings();renderSliders();resetFlight();controls.enabled=true;requestAnimationFrame(frame);
