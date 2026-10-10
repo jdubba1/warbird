@@ -37,6 +37,8 @@ Standard controllers: left stick pitch/roll, right stick yaw, LT/RT lower/raise 
 
 **Handling** exposes collective, pitch, roll and yaw strength, idle collective, weight, side drag, cruise and braking. Defaults retain the current arcade handling; **Reset** restores it. Further tuning is under **More**.
 
+Calibration pulses, flight/settings exports and Hieb's reference setup are under **Handling → Calibration**. GitHub, Twitter, jimbo.sh and credits are linked in the pause menu footer.
+
 Twin miniguns fire from fixed mounts toward a provisional 30 m zero. Choose 30 / 50 / 100 m under **Zero** in the pause menu. Close impacts sit below the sight and apart; beyond the zero the streams cross and rise relative to the sight until drop takes over. Rounds inherit helicopter momentum. Orange surface marks clear on reset. Bullet speed and rate are estimates, not measured WARDOGS values.
 
 ## Contribute

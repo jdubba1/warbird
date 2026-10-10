@@ -25,10 +25,10 @@
   <dialog id="setup-dialog" aria-label="Flight menu">
     <div class="dialog-head"><h2>Paused</h2><button class="close" aria-label="Close menu">×</button></div>
     <div class="setup-scroll">
-      <div class="tabs" role="group" aria-label="Menu panels"><button class="active" data-tab="world">Flight</button><button data-tab="controls">Controls</button><button data-tab="handling">Handling</button><button data-tab="reference">Test</button></div>
+      <div class="tabs" role="group" aria-label="Menu panels"><button class="active" data-tab="world">Flight</button><button data-tab="controls">Controls</button><button data-tab="handling">Handling</button></div>
       <section id="world-tab" class="tab-panel">
         <label class="select-row">Look<select id="look-select"><option value="doodle">Doodle</option><option value="natural">Natural</option></select></label>
-        <label class="select-row">Challenge<select id="challenge"><option value="free">Free flight</option><option value="hover">Hover</option><option value="slalom">Slalom</option><option value="landing">Landing</option></select></label>
+        <label class="select-row">Challenge<select id="challenge"><option value="free">Free</option><option value="hover">Hover</option><option value="slalom">Slalom</option><option value="landing">Landing</option></select></label>
         <label class="select-row">Zero<select id="gun-zero" aria-label="Minigun convergence distance"><option value="30">30 m</option><option value="50">50 m</option><option value="100">100 m</option></select></label>
         <button id="view" class="secondary">Chase <span>C</span></button><button id="restart" class="secondary">Reset <span>R</span></button>
         <button id="fly" class="fly">Fly</button>
@@ -46,21 +46,29 @@
           <label class="check"><input id="gamepad-invert" type="checkbox"> Invert pitch</label>
         </details>
         <label class="check"><input id="sound-toggle" type="checkbox" checked> Sound</label>
-        <button id="reference-setup" class="secondary" title="Hieb's bindings and camera settings, with assists off">Reference setup</button>
       </section>
       <section id="handling-tab" class="tab-panel" hidden>
-        <label class="select-row">Preset<select id="handling-preset"><option value="weighted">Little Bird</option><option value="v05">v0.5</option><option value="v04">v0.4</option><option value="previous">v0.3</option><option value="original">Original</option><option value="custom">Custom</option></select></label>
+        <label class="select-row">Preset<select id="handling-preset"><option value="weighted">Arcade</option><option value="v05">v0.5</option><option value="v04">v0.4</option><option value="previous">v0.3</option><option value="original">Original</option><option value="custom">Custom</option></select></label>
         <label class="select-row">Collective<select id="collective-mode"><option value="spring">Spring</option><option value="hold">Hold</option></select></label>
         <label class="check" title="Optional: latch parked after pressing collective down on the ground"><input id="ground-latch" type="checkbox"> Ground latch</label>
         <div id="handling-settings"></div><button id="reset-tuning" class="secondary">Reset</button>
-      </section>
-      <section id="reference-tab" class="tab-panel" hidden>
-        <div class="reference-tests" aria-label="Timed pulses: 5 seconds neutral, 1 second input, 5 seconds coast"><button class="secondary pulse" data-axis="roll" title="Timed roll pulse">Roll pulse</button><button class="secondary pulse" data-axis="pitch" title="Timed pitch pulse">Pitch pulse</button><button class="secondary pulse" data-axis="yaw" title="Timed yaw pulse">Yaw pulse</button></div>
-        <button id="export" class="secondary">Export flight</button>
-        <a href="https://www.youtube.com/watch?v=sarU96OHVMI" target="_blank" rel="noreferrer">Reference ↗</a>
+        <details id="calibration"><summary>Calibration</summary>
+          <div class="reference-tests" aria-label="Timed pulses: 5 seconds neutral, 1 second input, 5 seconds coast"><button class="secondary pulse" data-axis="roll" title="Timed roll pulse">Roll pulse</button><button class="secondary pulse" data-axis="pitch" title="Timed pitch pulse">Pitch pulse</button><button class="secondary pulse" data-axis="yaw" title="Timed yaw pulse">Yaw pulse</button></div>
+          <button id="export" class="secondary">Export flight</button><button id="export-settings" class="secondary">Export settings</button>
+          <button id="reference-setup" class="secondary" title="Hieb's bindings and camera settings, with assists off">Hieb setup</button>
+          <a href="https://www.youtube.com/watch?v=sarU96OHVMI" target="_blank" rel="noopener noreferrer">Reference ↗</a>
+        </details>
       </section>
     </div>
-    <div class="dialog-foot"><span id="save-status" role="status"></span><a href="/assets/credits.txt" target="_blank" rel="noreferrer">Credits</a><button id="export-settings">Export settings</button></div>
+    <div class="dialog-foot">
+      <nav class="project-links" aria-label="Project links">
+        <a href="https://github.com/jdubba1/warbird" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://x.com/drpepperfan2080" target="_blank" rel="noopener noreferrer">Twitter</a>
+        <a href="https://jimbo.sh" target="_blank" rel="noopener noreferrer">jimbo.sh</a>
+        <a href="/assets/credits.txt" target="_blank" rel="noopener noreferrer">Credits</a>
+      </nav>
+      <span id="save-status" role="status"></span>
+    </div>
   </dialog>
   <noscript>This simulator needs JavaScript.</noscript>
   <script type="module" src="/analytics.js"></script>

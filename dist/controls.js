@@ -27,7 +27,7 @@ export class Controls {
     addEventListener('blur',()=>{this.clear();this.callbacks.pause?.();});
     document.addEventListener('visibilitychange',()=>{if(document.hidden){this.clear();this.callbacks.pause?.();}});
     document.addEventListener('pointerlockchange',()=>{this.locked=document.pointerLockElement===canvas;this.enabled=this.locked;this.dragMode=false;this.clear();this.callbacks.lock?.(this.locked);});
-    document.addEventListener('pointerlockerror',()=>this.callbacks.error?.('Mouse capture was refused. Try a direct click in the browser, or use click-drag flight.'));
+    document.addEventListener('pointerlockerror',()=>this.callbacks.error?.('Mouse capture blocked. Try Mouse drag.'));
     canvas.addEventListener('mousedown',e=>{if(this.enabled&&this.locked&&!this.dragMode&&e.button===0)this.firing=true;});
     canvas.addEventListener('pointerdown',e=>{if(this.dragMode&&this.enabled){this.dragging=true;canvas.setPointerCapture(e.pointerId);}});
     canvas.addEventListener('pointerup',()=>{this.dragging=false;});
@@ -36,7 +36,7 @@ export class Controls {
     document.addEventListener('pointercancel',()=>{this.firing=false;});
     document.addEventListener('mousemove',e=>{if(this.locked||(this.enabled&&this.dragMode&&this.dragging)){this.pending.x+=e.movementX;this.pending.y+=e.movementY;}});
   }
-  async lock(){this.dragMode=false;try{await this.canvas.requestPointerLock();}catch{this.callbacks.error?.('Mouse capture was refused. Try a direct click in the browser, or use click-drag flight.');}}
+  async lock(){this.dragMode=false;try{await this.canvas.requestPointerLock();}catch{this.callbacks.error?.('Mouse capture blocked. Try Mouse drag.');}}
   startDrag(clear=true){if(clear)this.clear();this.dragMode=true;this.enabled=true;this.callbacks.lock?.(true);}
   clear(){this.firing=false;this.keys.clear();this.dragging=false;this.mouse.x=this.mouse.y=this.pending.x=this.pending.y=0;}
   frame(dt,pad={}){
