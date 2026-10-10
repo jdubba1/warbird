@@ -34,7 +34,7 @@ export function makeWorld(parent){
       box(2.5,2.7,.15,wx,wy,z+d/2+.1,window);
     }
     if(tower){box(w*.65,5,d*.65,x,top+2.5,z,roof);box(.8,15,.8,x,top+12.5,z,accent);obstacles.push({x,z,hx:.4,hz:.4,bottom:top+5,top:top+20});obstacles.push({x,z,hx:w*.325,hz:d*.325,bottom:top,top:top+5});surfaces.push({x,z,hx:w*.325,hz:d*.325,top:top+5});}
-    buildings.push({x,z,w,d});obstacles.push({x,z,hx:w/2,hz:d/2,bottom:low,top});surfaces.push({x,z,hx:w/2,hz:d/2,top});
+    buildings.push({x,z,w,d,top,tower});obstacles.push({x,z,hx:w/2,hz:d/2,bottom:low,top});surfaces.push({x,z,hx:w/2,hz:d/2,top});
   }
   const clear=(x,z,r=0)=>nearRoute(x,z,45+r)||buildings.some(b=>Math.abs(x-b.x)<b.w/2+12+r&&Math.abs(z-b.z)<b.d/2+12+r);
   const trees=[],rocks=[];
@@ -69,7 +69,11 @@ export function makeWorld(parent){
     const ring=new T.Mesh(new T.TorusGeometry(12,.22,8,64),material('#fff',{ink:1,fill:true}));ring.position.set(p.x,p.y,p.z);root.add(ring);gateMeshes.push(ring);
   }
   batchStaticGeometry(root);
-  return {root,obstacles,surfaces,buildings,gateMeshes,gatePoles,padMeshes,counts:{buildings:buildings.length,trees:trees.length,rocks:rocks.length},dispose(){
+  const targetPlacements=[];
+  buildings.forEach((b,i)=>{if(i%4===0)targetPlacements.push({kind:'roof',x:b.x+b.w*.39,y:b.top+(b.tower?11:6),z:b.z+b.d*.39});});
+  trees.forEach((t,i)=>{if(i%65===0){const x=t.x+t.h*.35+5,z=t.z;targetPlacements.push({kind:'tree',x,z,y:Math.max(groundHeight(x,z)+7,t.y+t.h*.55)});}});
+  for(let i=0;i<6;i++){const x=pads[0].x+(i%2?1:-1)*(55+Math.floor(i/2)*35),z=pads[0].z+80+Math.floor(i/2)*70;targetPlacements.push({kind:'start',x,z,y:groundHeight(x,z)+9});}
+  return {root,obstacles,surfaces,buildings,targetPlacements,gateMeshes,gatePoles,padMeshes,counts:{buildings:buildings.length,trees:trees.length,rocks:rocks.length},dispose(){
     const geometries=new Set(),materials=new Set(),textures=new Set();root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material){const base=o.material.doodle??o.material;materials.add(base);if(base.natural)materials.add(base.natural);}});
     for(const m of materials){if(m.map)textures.add(m.map);m.dispose();}for(const g of geometries)g.dispose();for(const t of textures)t.dispose();parent.remove(root);
   },surface:(x,z,y=Infinity)=>{

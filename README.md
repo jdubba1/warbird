@@ -41,6 +41,8 @@ Calibration pulses, flight/settings exports and Hieb's reference setup are under
 
 Twin miniguns fire from fixed mounts toward a provisional 30 m zero. Choose 30 / 50 / 100 m under **Zero** in the pause menu. Close impacts sit below the sight and apart; beyond the zero the streams cross and rise relative to the sight until drop takes over. Rounds inherit helicopter momentum. Every third round has an orange tracer, visible in either camera and rendering style. Tracers stop at surfaces; orange surface marks clear on reset. Bullet speed and rate are estimates, not measured WARDOGS values.
 
+Orange practice balloons sit above roofs, beside trees and downhill from the starting pad. One hit pops a balloon into fragments. Buildings and terrain block shots. **R** restores all targets.
+
 ## Contribute
 
 Issues and PRs are welcome. Physics feedback is especially useful with the handling settings, camera view, inputs and a short clip. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow.

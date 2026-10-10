@@ -41,7 +41,7 @@ let renderFrame;globalThis.requestAnimationFrame=cb=>renderFrame=cb;
 globalThis.FakeRenderer=class{constructor(){this.shadowMap={};this.w=1280;this.h=720;}setPixelRatio(){}getPixelRatio(){return 1;}getDrawingBufferSize(v){return v.set(this.w,this.h);}setSize(w,h){this.w=w;this.h=h;}setRenderTarget(){}setClearColor(){}clear(){}clearDepth(){}render(){}};
 let source=readFileSync(new URL('main.js',base),'utf8').replace("new T.WebGLRenderer",'new globalThis.FakeRenderer').replaceAll("from './","from '"+base.href);
 const folder=mkdtempSync(join(tmpdir(),'rotor-main-check-'));t.after(()=>rmSync(folder,{recursive:true,force:true}));
-const moduleFile=join(folder,'main.mjs');writeFileSync(moduleFile,source+'\nexport {heli,controls,weapons,config,inputs,bindings,active,input,cockpit};');const module=await import(pathToFileURL(moduleFile).href);const {heli,controls,weapons,config,inputs,bindings}=module;
+const moduleFile=join(folder,'main.mjs');writeFileSync(moduleFile,source+'\nexport {heli,controls,weapons,targets,camera,aircraft,renderPose,flightCamera,config,inputs,bindings,active,input,cockpit};');const module=await import(pathToFileURL(moduleFile).href);const {heli,controls,weapons,config,inputs,bindings}=module;
 const key=code=>{let prevented=false;const event={code,repeat:false,target:elements.get('scene'),preventDefault:()=>prevented=true};for(const cb of listeners.get('keydown')??[])cb(event);return prevented;};
 assert.equal(elements.get('setup-dialog').open,false);
 assert.equal(elements.get('mission-live').hidden,true);
@@ -56,6 +56,9 @@ elements.get('look-select').value='doodle';elements.get('look-select').emit('cha
 tabs[1].click();assert.equal(elements.get('controls-tab').hidden,false);
 close.click();assert.equal(elements.get('setup-dialog').open,false);
 key('KeyW');renderFrame(performance.now()+200);
+assert.ok(module.aircraft.group.position.equals(module.renderPose.position),'aircraft and chase camera use the same rendered flight pose');
+assert.ok(module.aircraft.group.quaternion.equals(module.renderPose.orientation));
+assert.ok(module.targets.remaining>60);module.targets.pop(module.targets.targets[0]);assert.equal(module.targets.targets[0].active,false);
 assert.ok(Number(elements.get('collective').textContent)>-100,'First keyboard input starts flight');
 key('Escape');assert.equal(elements.get('setup-dialog').open,true);
 elements.get('challenge').value='hover';elements.get('challenge').emit('change');assert.equal(elements.get('mission-live').hidden,false);
@@ -71,6 +74,7 @@ assert.equal(heli.crashed,true);assert.equal(elements.get('setup-dialog').open,f
 assert.equal(elements.get('notification').textContent,'Press R to reset');assert.equal(elements.get('notification').classList.contains('show'),true);
 assert.equal(controls.enabled,false);assert.equal(key('KeyR'),true);
 assert.equal(heli.crashed,false);assert.equal(weapons.shots,0);assert.equal(weapons.marks.count,0);assert.equal(weapons.rounds.length,0);assert.equal(elements.get('setup-dialog').open,false);
+assert.equal(module.targets.targets[0].active,true,'R restores popped targets');assert.equal(module.targets.fragments.count,0);
 assert.equal(elements.get('notification').textContent,'');assert.equal(elements.get('notification').classList.contains('show'),false);
 key('KeyW');renderFrame(performance.now()+500);assert.equal(controls.enabled,true);assert.ok(heli.collective>0,'keyboard flight resumes after reset');
 key('Escape');

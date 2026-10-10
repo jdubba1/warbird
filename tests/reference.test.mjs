@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PerspectiveCamera,Vector3,Quaternion} from '../dist/vendor/three.module.js';
-import {FlightCamera,verticalFov} from '../dist/camera.js';
+import {FlightCamera,FlightPose,verticalFov} from '../dist/camera.js';
 import {Helicopter,DEFAULTS,STEP} from '../dist/physics.js';
 function airborne(config={}){const h=new Helicopter({groundEffect:0,translationalLift:0,weathercock:0,rotorDiscDrag:0,collectiveMode:'hold',...config});h.reset({position:[0,100,0],collective:.5});return h;}
 function run(h,seconds,input={}){for(let i=0;i<Math.round(seconds/STEP);i++)h.step(input,STEP);return h;}
@@ -57,4 +57,35 @@ test('view changes cut to the correct pose without a stale chase-camera sweep',(
 test('chase settling is consistent across render frame rates',()=>{
   const result=fps=>{const h=new Helicopter(),camera=new PerspectiveCamera(),rig=new FlightCamera();rig.update(camera,h,0,false,DEFAULTS);h.position.x=20;for(let i=0;i<fps;i++)rig.update(camera,h,1/fps,false,DEFAULTS);return camera.position;};
   assert.ok(result(30).distanceTo(result(144))<1e-9);
+});
+test('120 Hz flight poses give the chase camera continuous motion at different display rates',()=>{
+  for(const fps of [60,144,165,240]){
+    const h={position:new Vector3(0,200,0),orientation:new Quaternion()},pose=new FlightPose(),camera=new PerspectiveCamera(),rig=new FlightCamera();
+    pose.reset(h);let accumulator=0,previousRotation=camera.quaternion.clone(),previousPosition=pose.position.clone();
+    for(let i=0;i<fps*4;i++){
+      accumulator+=1/fps;
+      while(accumulator>=STEP){pose.capture(h);h.position.x+=60*STEP;accumulator-=STEP;}
+      pose.update(h,accumulator/STEP);rig.update(camera,pose,1/fps,false,DEFAULTS);
+      if(i>fps*3){
+        assert.ok(Math.abs(pose.position.x-previousPosition.x-60/fps)<1e-9);
+        assert.ok(camera.quaternion.angleTo(previousRotation)<1e-6,'steady flight must not alternate camera rotation on empty physics frames');
+      }
+      previousRotation.copy(camera.quaternion);previousPosition.copy(pose.position);
+    }
+  }
+});
+test('rendered rotation takes the short path and reset never interpolates across a teleport',()=>{
+  const h={position:new Vector3(),orientation:new Quaternion().setFromAxisAngle(new Vector3(0,1,0),Math.PI-.02)},pose=new FlightPose();pose.reset(h);
+  h.orientation.setFromAxisAngle(new Vector3(0,1,0),-Math.PI+.02);h.position.x=10;pose.update(h,.5);
+  assert.equal(pose.position.x,5);assert.ok(pose.orientation.angleTo(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),Math.PI))<1e-7);
+  h.position.set(100,500,300);pose.reset(h);pose.update(h,0);assert.ok(pose.position.equals(h.position));assert.ok(pose.orientation.equals(h.orientation));
+});
+test('chase camera aims from its final terrain-safe position without feeding clearance back into the spring',()=>{
+  const h={position:new Vector3(0,10,0),orientation:new Quaternion()},camera=new PerspectiveCamera(),freeCamera=new PerspectiveCamera(),rig=new FlightCamera(),freeRig=new FlightCamera();
+  for(let i=0;i<120;i++){
+    h.position.x+=.5;rig.update(camera,h,1/144,false,DEFAULTS,()=>30);freeRig.update(freeCamera,h,1/144,false,DEFAULTS);
+    assert.equal(camera.position.y,31);assert.ok(rig.position.distanceTo(freeCamera.position)<1e-9);
+    const direction=new Vector3(0,0,-1).applyQuaternion(camera.quaternion),expected=rig.target.clone().sub(camera.position).normalize();
+    assert.ok(direction.distanceTo(expected)<1e-9,'terrain clearance must happen before lookAt');
+  }
 });

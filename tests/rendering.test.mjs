@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {Scene,PerspectiveCamera,LinearSRGBColorSpace,SRGBColorSpace,Box3,Vector3,Vector2,Raycaster,Mesh,BoxGeometry,ShaderLib,AlwaysDepth} from '../dist/vendor/three.module.js';
 import {DoodleRenderer,simMaterial,setAccent,setSceneStyle} from '../dist/rendering.js';
 import {Miniguns,SIGHT_DIRECTION} from '../dist/weapons.js';
+import {Targets} from '../dist/targets.js';
 import {verticalFov} from '../dist/camera.js';
 import {DEFAULTS} from '../dist/physics.js';
 import {makeCockpit,makeHelicopter} from '../dist/world.js';
@@ -119,4 +120,17 @@ test('tracers render without impacts in both looks, depth-tested before the cock
     assert.equal(weapons.tracers.material.toneMapped,false);assert.equal(weapons.tracers.material.depthTest,true);assert.equal(weapons.tracers.material.depthWrite,false);
   }
   weapons.reset();renderer.passes=[];visual.render(scene,camera,false,aircraft.group,weapons.effects);assert.equal(renderer.passes.some(p=>p.scene===weapons.effects),false);weapons.dispose();
+});
+
+test('live balloons and their bursts render with world depth in both cameras and looks without firing',()=>{
+  const renderer=fake(),visual=new DoodleRenderer(renderer),scene=new Scene(),camera=new PerspectiveCamera(),targets=new Targets([{x:0,y:0,z:-20}]),guns=new Miniguns(new Scene(),{targets});scene.add(guns.effects);
+  for(const popped of [false,true]){
+    if(popped)targets.pop(targets.targets[0]);
+    for(const cockpit of [false,true])for(const style of ['doodle','natural']){
+      renderer.passes=[];visual.setStyle(style);visual.render(scene,camera,cockpit,null,guns.effects);
+      const pass=renderer.passes.find(p=>p.scene===guns.effects);assert.ok(pass);assert.equal(pass.mask,8);assert.equal(pass.clear,false);assert.equal(pass.color,SRGBColorSpace);
+      for(const mesh of targets.group.children){assert.equal(mesh.material.depthTest,true);assert.equal(mesh.material.toneMapped,false);assert.equal(mesh.material.fog,false);}
+    }
+  }
+  targets.update(1);renderer.passes=[];visual.render(scene,camera,false,null,guns.effects);assert.equal(renderer.passes.some(p=>p.scene===guns.effects),false);guns.dispose();
 });

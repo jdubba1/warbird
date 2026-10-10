@@ -7,6 +7,21 @@ export const PILOT_OFFSET=Object.freeze([.43,.48,-.65]);
 export const verticalFov = (horizontal,aspect=16/9) =>
   2*Math.atan(Math.tan(horizontal*Math.PI/360)/aspect)*180/Math.PI;
 
+// Physics runs at a fixed rate. Render between its last two poses so the
+// aircraft and its camera never mix a stepped target with a smooth follower.
+export class FlightPose {
+  constructor(){
+    this.previousPosition=new Vector3();this.previousOrientation=new Quaternion();
+    this.position=new Vector3();this.orientation=new Quaternion();
+  }
+  capture(heli){this.previousPosition.copy(heli.position);this.previousOrientation.copy(heli.orientation);}
+  reset(heli){this.capture(heli);this.update(heli,1);}
+  update(heli,alpha){
+    this.position.lerpVectors(this.previousPosition,heli.position,alpha);
+    this.orientation.slerpQuaternions(this.previousOrientation,heli.orientation,alpha);
+  }
+}
+
 export class FlightCamera {
   constructor(){
     this.heading=new Quaternion();this.desiredHeading=new Quaternion();
@@ -15,7 +30,7 @@ export class FlightCamera {
     this.initialized=false;this.wasCockpit=false;
   }
   reset(){this.initialized=false;}
-  update(camera,heli,dt,cockpit,config){
+  update(camera,heli,dt,cockpit,config,groundHeight){
     const switched=cockpit!==this.wasCockpit;this.wasCockpit=cockpit;
     const fov=verticalFov(cockpit?config.cockpitFov:config.chaseFov);
     if(Math.abs(camera.fov-fov)>1e-6){camera.fov=fov;camera.updateProjectionMatrix();}
@@ -33,10 +48,13 @@ export class FlightCamera {
     const blend=1-Math.exp(-dt/Math.max(.01,config.cameraLag));
     if(!this.initialized||switched)this.heading.copy(this.desiredHeading);
     else this.heading.slerp(this.desiredHeading,blend);
-    this.offset.set(0,config.chaseHeight,config.chaseDistance).applyQuaternion(this.heading);
-    this.position.copy(heli.position).add(this.offset);
-    if(!this.initialized||switched)camera.position.copy(this.position);
-    else camera.position.lerp(this.position,blend);
+    this.offset.set(0,config.chaseHeight,config.chaseDistance).applyQuaternion(this.heading).add(heli.position);
+    if(!this.initialized||switched)this.position.copy(this.offset);
+    else this.position.lerp(this.offset,blend);
+    // Clearance is an output constraint, not feedback into the chase spring.
+    // Aim only after applying it, including on steep mountain faces.
+    camera.position.copy(this.position);
+    if(groundHeight)camera.position.y=Math.max(camera.position.y,groundHeight(camera.position.x,camera.position.z)+1);
     this.target.set(0,.4,-config.chaseLookAhead).applyQuaternion(this.heading).add(heli.position);
     camera.up.set(0,1,0);camera.lookAt(this.target);
     this.initialized=true;

@@ -76,8 +76,9 @@ export class SurfaceIndex {
 }
 
 export class Miniguns {
-  constructor(root,{zero=30,capacity=2048}={}){
+  constructor(root,{zero=30,capacity=2048,targets=null}={}){
     this.surface=new SurfaceIndex(root);this.zero=zero;this.capacity=capacity;this.rounds=[];this.clock=0;this.shots=0;this.cursor=0;
+    this.targets=targets;
     this.marks=new T.InstancedMesh(new T.CircleGeometry(.16,12),new T.MeshBasicMaterial({color:'#f77724',side:T.DoubleSide,fog:false,toneMapped:false,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),capacity);
     this.marks.name='Orange bullet marks';this.marks.count=0;this.marks.layers.set(3);this.marks.frustumCulled=false;this.marks.instanceMatrix.setUsage(T.DynamicDrawUsage);
     this.stamp=new T.Object3D();this.normalAxis=new T.Vector3(0,0,1);
@@ -85,6 +86,7 @@ export class Miniguns {
     this.tracers=new T.LineSegments(tracerGeometry,new T.LineBasicMaterial({color:'#ef7b32',fog:false,toneMapped:false,depthWrite:false}));
     this.tracers.name='Tracer rounds';this.tracers.count=0;this.tracers.layers.set(3);this.tracers.frustumCulled=false;
     this.effects=new T.Group();this.effects.name='Gun effects';this.effects.layers.set(3);this.effects.add(this.marks,this.tracers);
+    if(targets)this.effects.add(targets.group);
     this.streaks=[];
   }
   mark(hit){
@@ -96,9 +98,12 @@ export class Miniguns {
     const alive=[];
     for(const round of this.rounds){
       const end=round.position.clone().addScaledVector(round.velocity,dt);end.y-=GRAVITY*dt*dt/2;
-      const hit=this.surface.cast(round.position,end);round.age+=dt;
+      let hit=this.surface.cast(round.position,end);
+      const targetHit=this.targets?.cast(round.position,hit?.point??end);
+      if(targetHit&&(!hit||targetHit.distance<hit.distance))hit=targetHit;
+      round.age+=dt;
       if(hit){
-        this.mark(hit);
+        if(hit.target)this.targets.pop(hit.target);else this.mark(hit);
         if(round.tracer&&this.streaks.length<256){
           const age=round.age-dt+dt*hit.distance/round.position.distanceTo(end);
           this.streaks.push({start:this.tracerStart(round,hit.point,age),end:hit.point.clone(),life:.05});
@@ -128,8 +133,8 @@ export class Miniguns {
     for(const streak of this.streaks)draw(streak.start,streak.end);
     this.tracers.count=count;this.tracers.geometry.setDrawRange(0,count*2);positions.needsUpdate=true;
   }
-  reset(){this.rounds=[];this.streaks=[];this.clock=0;this.shots=0;this.cursor=0;this.marks.count=this.tracers.count=0;this.tracers.geometry.setDrawRange(0,0);}
-  dispose(){for(const mesh of [this.marks,this.tracers]){mesh.geometry.dispose();mesh.material.dispose();}}
+  reset(){this.rounds=[];this.streaks=[];this.clock=0;this.shots=0;this.cursor=0;this.marks.count=this.tracers.count=0;this.tracers.geometry.setDrawRange(0,0);this.targets?.reset();}
+  dispose(){for(const mesh of [this.marks,this.tracers]){mesh.geometry.dispose();mesh.material.dispose();}this.targets?.dispose();}
 }
 
 export function makeGunMounts(){
