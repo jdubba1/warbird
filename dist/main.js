@@ -1,7 +1,8 @@
 import * as T from './vendor/three.module.js';
 import {PALETTE,MONO_FONT} from './palette.js';
 import {Helicopter,DEFAULTS,V05_DEFAULTS,V04_DEFAULTS,PREVIOUS_DEFAULTS,ORIGINAL_DEFAULTS,migrateHandling,STEP,clamp} from './physics.js';
-import {Controls,BINDINGS,keyLabel} from './controls.js';
+import {GamepadInput,inputSettings} from './gamepad.js';
+import {Controls,BINDINGS,keyLabel,rebind} from './controls.js';
 import {makeWorld,makeHelicopter,makeCockpit,groundHeight,pads,gates} from './world.js';
 import {DoodleRenderer,setAccent} from './rendering.js';
 import {FlightCamera,verticalFov} from './camera.js';
@@ -11,9 +12,10 @@ import {setMap,mapId} from './terrain.js';
 const $=id=>document.getElementById(id);
 const config={...DEFAULTS},bindings={...BINDINGS};
 let look='doodle',gunZero=30;
+const inputs=inputSettings();
 try {
   const saved=JSON.parse(localStorage.getItem('rotor-lab-v1')||'null');
-  if(saved){if([30,50,100].includes(saved.gunZero))gunZero=saved.gunZero;look=saved.look==='natural'?'natural':'doodle';setMap(saved.map);for(const k of Object.keys(DEFAULTS)){const v=saved.config?.[k];if(typeof v===typeof DEFAULTS[k]&&(typeof v!=='number'||Number.isFinite(v)))config[k]=v;}for(const k of Object.keys(BINDINGS)){const v=saved.bindings?.[k];if(typeof v==='string'&&v.length<32)bindings[k]=v;}}
+  if(saved){Object.assign(inputs,inputSettings(saved.inputs));if([30,50,100].includes(saved.gunZero))gunZero=saved.gunZero;look=saved.look==='natural'?'natural':'doodle';setMap(saved.map);for(const k of Object.keys(DEFAULTS)){const v=saved.config?.[k];if(typeof v===typeof DEFAULTS[k]&&(typeof v!=='number'||Number.isFinite(v)))config[k]=v;}for(const k of Object.keys(BINDINGS)){const v=saved.bindings?.[k];if(typeof v==='string'&&v.length<32)bindings[k]=v;}}
   // Upgrade only the unchanged v1 thrust response. Preserve deliberate tuning.
   if(saved && saved.config?.angularInertia===undefined && saved.config?.rotorLag===ORIGINAL_DEFAULTS.rotorLag)config.rotorLag=DEFAULTS.rotorLag;
   if(saved)migrateHandling(config,saved.config,saved.version);
@@ -30,6 +32,7 @@ const scene=new T.Scene(),camera=new T.PerspectiveCamera(verticalFov(config.chas
 let world=makeWorld(scene);const aircraft=makeHelicopter();scene.add(aircraft.group);
 const cockpitModel=makeCockpit();cockpitModel.setStyle(look);camera.add(cockpitModel.group);scene.add(camera);cockpitModel.group.visible=false;
 const flightCamera=new FlightCamera();
+const gamepad=new GamepadInput();let controllerClick=false,controllerUsed=false;
 const weapons=new Miniguns(world.root,{zero:gunZero});scene.add(weapons.marks);aircraft.setGunZero(gunZero);
 const hud=$('hud').getContext('2d'),map=$('map').getContext('2d');
 let mode='free',active=false,hasFlown=false,cockpit=false,missionDone=false,hoverTime=0,landingTime=0,gateIndex=0;
@@ -42,19 +45,19 @@ camera.position.set(10,7.5,17);camera.lookAt(0,1,-8);
 
 function dismissNotification(){clearTimeout(notificationTimer);$('notification').classList.remove('show');$('notification').textContent='';}
 function toast(text,duration=4500){$('notification').textContent=text;$('notification').classList.add('show');clearTimeout(notificationTimer);if(duration>0)notificationTimer=setTimeout(dismissNotification,duration);}
-function save(){heli.config={...config};try{localStorage.setItem('rotor-lab-v1',JSON.stringify({version:'0.10.0',config,bindings,map:mapId,look,gunZero}));$('save-status').textContent='Saved';}catch{$('save-status').textContent='Save unavailable';}}
+function save(){heli.config={...config};try{localStorage.setItem('rotor-lab-v1',JSON.stringify({version:'0.10.0',config,bindings,map:mapId,look,gunZero,inputs}));$('save-status').textContent='Saved';}catch{$('save-status').textContent='Save unavailable';}}
 function stopFlight(){
-  active=false;accumulator=0;controls.enabled=false;controls.clear();audio.volume(0);
+  active=false;accumulator=0;controls.enabled=false;controls.clear();gamepad.clear();controllerUsed=false;audio.volume(0);
   document.body.classList.remove('flying');
   if(document.pointerLockElement)document.exitPointerLock();
 }
 const controls=new Controls($('scene'),config,bindings,{reset:()=>resetFlight(),view:()=>setView(!cockpit),pause:()=>setup(),lock:locked=>{
   if(locked){active=true;hasFlown=true;accumulator=0;previous=performance.now();document.body.classList.add('flying');updateObjective();}
   else if(active)setup();
-},error:msg=>{setup();toast(msg,8000);}});
+},error:msg=>{setup();toast(msg,8000);}},inputs);
 
 function resetFlight(){
-  dismissNotification();weapons.reset();
+  dismissNotification();weapons.reset();gamepad.clear();
   needsRender=true;
   flightCamera.reset();
   sessionId++;hoverTime=landingTime=gateIndex=0;missionDone=false;logClock=0;pulse=null;controls.clear();
@@ -77,7 +80,7 @@ function startFlight(drag=false){
   if($('setup-dialog').open)$('setup-dialog').close();
   audio.start();if(drag)controls.startDrag();else controls.lock();
 }
-$('fly').addEventListener('click',()=>startFlight());
+$('fly').addEventListener('click',()=>startFlight(controllerClick));
 $('drag-flight').addEventListener('click',()=>startFlight(true));
 $('restart').addEventListener('click',resetFlight);
 $('scene').addEventListener('click',()=>{if(!controls.locked&&!dragChosen&&!$('setup-dialog').open)startFlight();});
@@ -129,20 +132,18 @@ function renderBindings(){
     actions.forEach((action,i)=>{
       const button=document.createElement('button');button.textContent=`${directions[i]} ${keyLabel(bindings[action])}`;button.setAttribute('aria-label',`Rebind ${fieldLabels[action]}`);button.title=fieldLabels[action];
       button.addEventListener('click',()=>{button.textContent='Key?';controls.capture=code=>{
-        if(['Escape','KeyR','KeyC','KeyV','KeyF','Tab','MetaLeft','MetaRight'].includes(code)){toast('Reserved key');renderBindings();return;}
-        const used=Object.keys(bindings).find(k=>k!==action&&bindings[k]===code);
-        if(used){toast(`${keyLabel(code)}: ${fieldLabels[used]}`);renderBindings();return;}
-        bindings[action]=code;save();renderBindings();
+        if(!rebind(bindings,action,code)){toast('Reserved key');renderBindings();return;}
+        controls.clear();save();renderBindings();
       };});row.append(button);
     });list.append(row);
   }
 }
 const sliders={
-  mouse:[['mouseRoll','Mouse roll',.0002,.01,.0001,'Input per pixel/s',v=>(v*1000).toFixed(1)],['mousePitch','Mouse pitch',.0002,.01,.0001,'Input per pixel/s',v=>(v*1000).toFixed(1)],['mouseCurve','Mouse response curve',.5,3,.05,'1 = linear; higher = softer near center',v=>v.toFixed(2)],['cockpitFov','Cockpit FOV',60,120,1,'Horizontal degrees at 16:9',v=>`${v.toFixed(0)}°`],['chaseFov','Chase FOV',70,130,1,'Horizontal degrees at 16:9; Hieb uses 110°',v=>`${v.toFixed(0)}°`],['chaseDistance','Chase distance',5,24,.5,'Metres behind the aircraft',v=>`${v.toFixed(1)} m`],['chaseHeight','Chase height',1,10,.1,'Metres above the aircraft',v=>`${v.toFixed(1)} m`],['chaseLookAhead','Chase look-ahead',0,20,.5,'Metres ahead of the aircraft',v=>`${v.toFixed(1)} m`],['cameraLag','Chase response time',.01,.8,.01,'Camera motion, separate from aircraft inertia',v=>`${Math.round(v*1000)} ms`]],
-  handling:[['collectivePower','Collective power',1,4,.05,'Thrust authority above hover; neutral and low collective stay unchanged',v=>`${v.toFixed(2)}×`],['cruiseBoost','Cruise efficiency',0,.8,.01,'Powered drag reduction above the speed knee',v=>`${Math.round(v*100)}%`],['cruiseThreshold','Cruise knee',10,40,.5,'Start of the speed transition',v=>`${Math.round(v*3.6)} km/h`],['angularInertia','Rotational inertia',.5,3,.05,'Higher takes longer to start and arrest rotation',v=>`${v.toFixed(2)}×`],['lateralDrag','Sideways drag',.15,1.5,.01,'Lower carries more momentum through a turn',v=>`${v.toFixed(2)}×`],['pitchPower','Pitch authority',.5,6,.1,'Applied moment / baseline inertia',v=>v.toFixed(1)],['rollPower','Roll authority',.5,7,.1,'Applied moment / baseline inertia',v=>v.toFixed(1)],['yawInputLag','Yaw input response',.02,.3,.01,'Pedals respond separately from pitch and roll',v=>`${Math.round(v*1000)} ms`],['yawSpeedScale','Yaw at speed',20,120,5,'Higher retains more pedal authority in fast flight',v=>`${v.toFixed(0)} m/s`],['yawPower','Yaw authority',.2,4,.05,'Falls with forward speed',v=>v.toFixed(1)],['angularDamping','Angular damping',.3,4,.1,'Damping moment; inertia controls decay time',v=>v.toFixed(1)],['inputLag','Input response time',.02,.6,.01,'Smaller responds faster',v=>`${Math.round(v*1000)}ms`],['rotorLag','Collective response time',.04,1,.02,'Rotor thrust response',v=>`${Math.round(v*1000)}ms`],['lift','Lift multiplier',.6,1.5,.01,'Thrust relative to weight',v=>v.toFixed(2)],['drag','Air resistance',.3,3,.05,'Forward, lateral and vertical drag',v=>v.toFixed(2)],['neutral','Idle collective',.2,.8,.01,'Restored on release; above 50% keeps climbing',v=>`${Math.round(v*100)}%`],['collectiveRate','Collective slew rate',.1,1.5,.05,'Fraction/s in keep-position mode',v=>v.toFixed(2)],['translationalLift','Translational lift',0,.3,.01,'Extra efficiency in forward flight',v=>`${Math.round(v*100)}%`],['groundEffect','Ground effect',0,.2,.01,'Extra lift close to the ground',v=>`${Math.round(v*100)}%`],['weathercock','Weathercock effect',0,.05,.001,'Nose aligns with airflow at speed',v=>v.toFixed(3)],['forwardDrag','Forward drag',.1,1.5,.05,'Lower carries speed until the rotor disc meets the airflow',v=>`${v.toFixed(2)}×`],['forwardDiscDrag','Cruise disc resistance',.1,1,.05,'Powered forward flight; nose-up flare resistance is unchanged',v=>`${v.toFixed(2)}×`],['rotorDiscDrag','Rotor disc braking',0,.12,.001,'Estimated airflow resistance normal to the rotor',v=>v.toFixed(3)],['pitchInertia','Pitch inertia',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['rollInertia','Roll inertia',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['yawInertia','Yaw inertia',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['pitchDamping','Pitch damping',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['rollDamping','Roll damping',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['yawDamping','Yaw damping',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['stability','Leveling assist',0,5,.1,'0 = no automatic leveling',v=>v.toFixed(1)]]
+  mouse:[['mouseRoll','Mouse horizontal',.0002,.01,.0001,'Input per pixel/s',v=>(v*1000).toFixed(1)],['mousePitch','Mouse pitch',.0002,.01,.0001,'Input per pixel/s',v=>(v*1000).toFixed(1)],['mouseCurve','Mouse response curve',.5,3,.05,'1 = linear; higher = softer near center',v=>v.toFixed(2)],['cockpitFov','Cockpit FOV',60,120,1,'Horizontal degrees at 16:9',v=>`${v.toFixed(0)}°`],['chaseFov','Chase FOV',70,130,1,'Horizontal degrees at 16:9; Hieb uses 110°',v=>`${v.toFixed(0)}°`],['chaseDistance','Chase distance',5,24,.5,'Metres behind the aircraft',v=>`${v.toFixed(1)} m`],['chaseHeight','Chase height',1,10,.1,'Metres above the aircraft',v=>`${v.toFixed(1)} m`],['chaseLookAhead','Chase look-ahead',0,20,.5,'Metres ahead of the aircraft',v=>`${v.toFixed(1)} m`],['cameraLag','Chase response time',.01,.8,.01,'Camera motion, separate from aircraft inertia',v=>`${Math.round(v*1000)} ms`]],
+  handling:[['collectivePower','Collective power',1,4,.05,'Thrust authority above hover; neutral and low collective stay unchanged',v=>`${v.toFixed(2)}×`],['cruiseBoost','Cruise efficiency',0,.8,.01,'Powered drag reduction above the speed knee',v=>`${Math.round(v*100)}%`],['cruiseThreshold','Cruise knee',10,40,.5,'Start of the speed transition',v=>`${Math.round(v*3.6)} km/h`],['angularInertia','Rotational inertia',.5,3,.05,'Higher takes longer to start and arrest rotation',v=>`${v.toFixed(2)}×`],['lateralDrag','Sideways drag',.15,1.5,.01,'Lower carries more momentum through a turn',v=>`${v.toFixed(2)}×`],['pitchPower','Pitch authority',.5,6,.1,'Applied moment / baseline inertia',v=>v.toFixed(1)],['rollPower','Roll authority',.5,7,.1,'Applied moment / baseline inertia',v=>v.toFixed(1)],['yawInputLag','Yaw input response',.02,.3,.01,'Pedals respond separately from pitch and roll',v=>`${Math.round(v*1000)} ms`],['yawSpeedScale','Yaw at speed',20,120,5,'Higher retains more pedal authority in fast flight',v=>`${v.toFixed(0)} m/s`],['yawPower','Yaw authority',.2,8,.05,'Falls with forward speed',v=>v.toFixed(1)],['angularDamping','Angular damping',.3,4,.1,'Damping moment; inertia controls decay time',v=>v.toFixed(1)],['inputLag','Input response time',.02,.6,.01,'Smaller responds faster',v=>`${Math.round(v*1000)}ms`],['rotorLag','Collective response time',.04,1,.02,'Rotor thrust response',v=>`${Math.round(v*1000)}ms`],['lift','Lift multiplier',.6,1.5,.01,'Thrust relative to weight',v=>v.toFixed(2)],['drag','Air resistance',.3,3,.05,'Forward, lateral and vertical drag',v=>v.toFixed(2)],['neutral','Idle collective',.2,.8,.01,'Restored on release; above 50% keeps climbing',v=>`${Math.round(v*100)}%`],['collectiveRate','Collective slew rate',.1,1.5,.05,'Fraction/s in keep-position mode',v=>v.toFixed(2)],['translationalLift','Translational lift',0,.3,.01,'Extra efficiency in forward flight',v=>`${Math.round(v*100)}%`],['groundEffect','Ground effect',0,.2,.01,'Extra lift close to the ground',v=>`${Math.round(v*100)}%`],['weathercock','Weathercock effect',0,.05,.001,'Nose aligns with airflow at speed',v=>v.toFixed(3)],['forwardDrag','Forward drag',.1,1.5,.05,'Lower carries speed until the rotor disc meets the airflow',v=>`${v.toFixed(2)}×`],['forwardDiscDrag','Cruise disc resistance',.1,1,.05,'Powered forward flight; nose-up flare resistance is unchanged',v=>`${v.toFixed(2)}×`],['rotorDiscDrag','Rotor disc braking',0,.12,.001,'Estimated airflow resistance normal to the rotor',v=>v.toFixed(3)],['pitchInertia','Pitch inertia',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['rollInertia','Roll inertia',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['yawInertia','Yaw inertia',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['pitchDamping','Pitch damping',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['rollDamping','Roll damping',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['yawDamping','Yaw damping',.3,3,.05,'Axis multiplier',v=>`${v.toFixed(2)}×`],['stability','Leveling assist',0,5,.1,'0 = no automatic leveling',v=>v.toFixed(1)]]
 };
-const primarySliders={mouse:new Set(['mouseRoll','mousePitch','cockpitFov','chaseFov']),handling:new Set(['angularInertia','lateralDrag','cruiseBoost','yawPower','collectivePower','rotorDiscDrag'])};
-const shortLabels={angularInertia:'Weight',lateralDrag:'Side drag',cruiseBoost:'Cruise',yawPower:'Yaw',collectivePower:'Collective',lift:'Lift',rotorDiscDrag:'Braking'};
+const primarySliders={mouse:new Set(['mouseRoll','mousePitch','cockpitFov','chaseFov']),handling:new Set(['collectivePower','pitchPower','rollPower','yawPower','neutral','angularInertia','lateralDrag','cruiseBoost','rotorDiscDrag'])};
+const shortLabels={angularInertia:'Weight',lateralDrag:'Side drag',cruiseBoost:'Cruise',yawPower:'Yaw',collectivePower:'Collective',lift:'Lift',rotorDiscDrag:'Braking',pitchPower:'Pitch',rollPower:'Roll',neutral:'Idle',mouseRoll:'Horizontal',mousePitch:'Vertical'};
 function renderSliders(){for(const [section,items]of Object.entries(sliders)){
   const container=$(section+'-settings');container.replaceChildren();
   const more=document.createElement('details'),summary=document.createElement('summary');summary.textContent='More';more.append(summary);
@@ -155,6 +156,15 @@ function renderSliders(){for(const [section,items]of Object.entries(sliders)){
     row.append(span,range,output);(primarySliders[section].has(key)?container:more).append(row);
   }container.append(more);
 }heli.config={...config};$('ground-latch').checked=config.groundCollectiveLatch;$('collective-mode').value=config.collectiveMode;$('sound-toggle').checked=config.sound;updatePreset();}
+$('mouse-axis').value=inputs.mouseAxis;
+$('mouse-axis').addEventListener('change',e=>{inputs.mouseAxis=e.target.value==='yaw'?'yaw':'roll';controls.clear();save();});
+$('gamepad-toggle').checked=inputs.gamepadEnabled;
+$('gamepad-toggle').addEventListener('change',e=>{inputs.gamepadEnabled=e.target.checked;gamepad.clear();save();});
+$('gamepad-invert').checked=inputs.gamepadInvertPitch;
+$('gamepad-invert').addEventListener('change',e=>{inputs.gamepadInvertPitch=e.target.checked;gamepad.clear();save();});
+$('gamepad-deadzone').value=inputs.gamepadDeadzone;
+$('gamepad-deadzone-output').textContent=Math.round(inputs.gamepadDeadzone*100)+'%';
+$('gamepad-deadzone').addEventListener('input',e=>{inputs.gamepadDeadzone=clamp(Number(e.target.value),.05,.35);$('gamepad-deadzone-output').textContent=Math.round(inputs.gamepadDeadzone*100)+'%';save();});
 const presetKeys=['neutral','collectivePower','angularInertia','lateralDrag','rotorLag','rotorDiscDrag','forwardDrag','forwardDiscDrag','groundCollectiveLatch','cruiseBoost','cruiseThreshold','pitchPower','rollPower','yawPower','angularDamping','inputLag','lift','drag','yawInputLag','yawSpeedScale','pitchInertia','rollInertia','yawInertia','pitchDamping','rollDamping','yawDamping'];
 function updatePreset(){const is=preset=>presetKeys.every(k=>Math.abs(config[k]-preset[k])<1e-6);const name=is(DEFAULTS)?'weighted':is(V05_DEFAULTS)?'v05':is(V04_DEFAULTS)?'v04':is(PREVIOUS_DEFAULTS)?'previous':is(ORIGINAL_DEFAULTS)?'original':'custom';$('handling-preset').value=name;}
 $('handling-preset').addEventListener('change',e=>{const preset={weighted:DEFAULTS,v05:V05_DEFAULTS,v04:V04_DEFAULTS,previous:PREVIOUS_DEFAULTS,original:ORIGINAL_DEFAULTS}[e.target.value];if(!preset)return;for(const k of presetKeys)config[k]=preset[k];save();renderSliders();toast(`${{weighted:'Little Bird',v05:'v0.5',v04:'v0.4',previous:'Previous reference',original:'Original'}[e.target.value]} selected`);});
@@ -173,7 +183,7 @@ $('reference-setup').addEventListener('click',()=>{Object.assign(config,{mouseRo
 $('sound-toggle').addEventListener('change',e=>{config.sound=e.target.checked;save();});
 $('reset-tuning').addEventListener('click',()=>{Object.assign(config,DEFAULTS);save();renderSliders();flightCamera.reset();needsRender=true;toast('Handling reset');});
 function download(name,content,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-$('export-settings').addEventListener('click',()=>download('warbird-settings.json',JSON.stringify({model:'rotor-lab-v0.10-feedback-estimated',map:mapId,config,bindings},null,2),'application/json'));
+$('export-settings').addEventListener('click',()=>download('warbird-settings.json',JSON.stringify({model:'rotor-lab-v0.10-feedback-estimated',map:mapId,config,bindings,inputs},null,2),'application/json'));
 $('export').addEventListener('click',()=>{
   if(!recording.length){toast('No flight data');return;}
   const columns=Object.keys(recording[0]);const escape=v=>typeof v==='string'?`"${v.replaceAll('"','""')}"`:v;
@@ -226,12 +236,41 @@ const audio={ctx:null,gain:null,osc:null,start(){
   this.ctx?.resume().catch(()=>{});
 },volume(v){if(this.ctx&&this.gain)this.gain.gain.setTargetAtTime(config.sound?v:0,this.ctx.currentTime,.1);}};
 
+function handleController(pad){
+  const status=!inputs.gamepadEnabled?'Disabled':pad.connected?'Connected':pad.available?'Unsupported layout':'Disconnected';
+  if($('gamepad-status').textContent!==status)$('gamepad-status').textContent=status;
+  if(pad.disconnected&&active&&controllerUsed){setup();return true;}
+  const dialog=$('setup-dialog');
+  if(pad.pause){if(dialog.open)startFlight(true);else setup();return true;}
+  if(dialog.open){
+    if(!(pad.up||pad.down||pad.left||pad.right||pad.confirm))return true;
+    const items=Array.from(dialog.querySelectorAll('button,input,select,summary,a')).filter(el=>!el.disabled&&el.getClientRects().length);
+    if(!items.length)return true;
+    let focused=document.activeElement,index=items.indexOf(focused);
+    if(pad.up||pad.down){index=index<0?(pad.down?0:items.length-1):(index+(pad.down?1:-1)+items.length)%items.length;items[index].focus();focused=items[index];}
+    if(pad.left||pad.right){
+      const direction=pad.right?1:-1;
+      if(focused?.tagName==='INPUT'&&focused.type==='range'){
+        focused.value=clamp(Number(focused.value)+direction*Number(focused.step||1),Number(focused.min),Number(focused.max));focused.dispatchEvent(new Event('input',{bubbles:true}));
+      }else if(focused?.tagName==='SELECT'){
+        focused.selectedIndex=clamp(focused.selectedIndex+direction,0,focused.options.length-1);focused.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+    }
+    if(pad.confirm){focused=index<0?items[0]:focused;focused.focus();controllerClick=true;try{focused.click();}finally{controllerClick=false;}}return true;
+  }
+  if(!active&&(pad.active||pad.confirm||pad.reset)){if(heli.crashed)resetFlight();startFlight(true);controllerUsed=true;}
+  if(pad.view)setView(!cockpit);if(pad.reset){resetFlight();return true;}
+  if(pad.active)controllerUsed=true;
+}
 function frame(now){
   requestAnimationFrame(frame);const dt=Math.min((now-previous)/1000,.05);previous=now;
   if(document.hidden)return;
+  const pad=gamepad.poll(inputs),controllerConsumed=handleController(pad);
   const oldCamera=camera.position.clone(),oldRotation=camera.quaternion.clone();
   if(active && !heli.crashed){
-    input=controls.frame(dt);accumulator+=dt;
+    input=controls.frame(dt,controllerConsumed?{}:pad);
+    if(!pad.active&&(input.roll||input.pitch||input.yaw||input.collective||input.fire))controllerUsed=false;
+    accumulator+=dt;
     while(accumulator>=STEP){
       if(pulse){input={pitch:0,roll:0,yaw:0,collective:0,collectiveAbsolute:.5};if(heli.time>=5&&heli.time<6)input[pulse.axis]=1;}
       previousPos.copy(heli.position);heli.step(input,STEP,world.surface,world.obstacles);if(!heli.crashed)weapons.step(heli,input.fire,STEP);updateMission(STEP);record(STEP);accumulator-=STEP;

@@ -31,6 +31,12 @@ Open http://localhost:5173. Click to capture the mouse; Escape opens controls, r
 | R | Reset |
 | Escape | Pause menu |
 
+Under **Controls**, Mouse X can drive roll or yaw. Rebinding an occupied key swaps the two actions. Input preferences are saved locally.
+
+Standard controllers: left stick pitch/roll, right stick yaw, LT/RT lower/raise collective, RB fire, A camera, B reset, Start pause/resume. Use D-pad up/down to focus menu items, left/right to adjust sliders or selections, and A to activate. Dead zone and pitch inversion are under **Controls → Controller**. Held flight inputs must return to neutral after connection, pause or reset. Controller flight does not require mouse capture. Physical controller compatibility still needs hardware testing.
+
+**Handling** exposes collective, pitch, roll and yaw strength, idle collective, weight, side drag, cruise and braking. Defaults retain the current arcade handling; **Reset** restores it. Further tuning is under **More**.
+
 Twin miniguns fire from fixed mounts toward a provisional 30 m zero. Choose 30 / 50 / 100 m under **Zero** in the pause menu. Close impacts sit below the sight and apart; beyond the zero the streams cross and rise relative to the sight until drop takes over. Rounds inherit helicopter momentum. Orange surface marks clear on reset. Bullet speed and rate are estimates, not measured WARDOGS values.
 
 ## Contribute
@@ -47,6 +53,7 @@ This runs syntax checks and the Node behavior tests. Tests cover flight dynamics
 
 - `dist/physics.js`: 120 Hz flight model, quaternion attitude, rotor response and world-space momentum.
 - `dist/controls.js`: keyboard, mouse capture and rebinding.
+- `dist/gamepad.js`: standard gamepad input, dead zones and saved input preferences.
 - `dist/world.js`, `dist/terrain.js`: mountains, obstacles, helicopter and cockpit geometry.
 - `dist/camera.js`, `dist/rendering.js`, `dist/palette.js`: chase/cockpit cameras, doodle postprocessing and unshaded aircraft overlay.
 - `dist/weapons.js`: twin fixed guns, ballistic rounds, visible-surface collision index and bounded orange impact marks.
@@ -54,6 +61,8 @@ This runs syntax checks and the Node behavior tests. Tests cover flight dynamics
 - `tests/`: Node tests; `reference/`: manually sampled public flight data and diagnostic fits.
 
 The app serves `dist/` directly. Three.js and fonts are vendored, so play does not fetch third-party assets. Settings are saved locally; calibration CSVs export from browser memory.
+
+The production site uses Vercel Web Analytics for cookie-free visit/pageview counts. Local development and previews are excluded. Query strings and URL fragments are stripped from pageview URLs; flight inputs, settings and calibration recordings are not sent. Blocking analytics does not affect flight. Historical visits before tracking was added cannot be recovered.
 
 [REFERENCE.md](REFERENCE.md) describes the footage and tuning limits. [RESEARCH.md](RESEARCH.md) has a controlled capture protocol. The model omits blade flapping, vortex ring state, autorotation, engine limits, torque coupling, wind and individual rotor/skid collisions.
 

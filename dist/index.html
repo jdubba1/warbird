@@ -37,7 +37,14 @@
       <section id="controls-tab" class="tab-panel" hidden>
         <div id="binding-list"></div>
         <div class="binding-row"><span>Fire</span><span>LMB / F</span></div>
+        <label class="select-row">Mouse X<select id="mouse-axis"><option value="roll">Roll</option><option value="yaw">Yaw</option></select></label>
         <div id="mouse-settings"></div>
+        <details><summary>Controller <span id="gamepad-status">Disconnected</span></summary>
+          <label class="check"><input id="gamepad-toggle" type="checkbox" checked> Enabled</label>
+          <p class="muted">L: pitch / roll · R: yaw<br>LT / RT: collective · RB: fire<br>A: camera · B: reset · Start: pause<br>Menu: D-pad / A</p>
+          <label class="slider-row"><span>Dead zone</span><input id="gamepad-deadzone" type="range" min="0.05" max="0.35" step="0.01" aria-label="Controller dead zone"><output id="gamepad-deadzone-output">12%</output></label>
+          <label class="check"><input id="gamepad-invert" type="checkbox"> Invert pitch</label>
+        </details>
         <label class="check"><input id="sound-toggle" type="checkbox" checked> Sound</label>
         <button id="reference-setup" class="secondary" title="Hieb's bindings and camera settings, with assists off">Reference setup</button>
       </section>
@@ -56,6 +63,7 @@
     <div class="dialog-foot"><span id="save-status" role="status"></span><a href="/assets/credits.txt" target="_blank" rel="noreferrer">Credits</a><button id="export-settings">Export settings</button></div>
   </dialog>
   <noscript>This simulator needs JavaScript.</noscript>
+  <script type="module" src="/analytics.js"></script>
   <script type="module" src="/main.js"></script>
 </body>
 </html>
